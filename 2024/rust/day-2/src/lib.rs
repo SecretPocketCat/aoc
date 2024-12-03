@@ -58,15 +58,18 @@ pub mod solution {
                         return false;
                     }
                     (true, false) => {
+                        // remove the initial num in case the sort direction was wrong
+                        let mut n0 = nums.clone();
+                        n0.remove(0);
+                        // remove the current index
                         let mut n1 = nums.clone();
                         n1.remove(i);
+                        // remove the next index
                         let mut n2 = nums.clone();
                         n2.remove(i + 1);
-                        let res = report_valid(n1, true) || report_valid(n2, true);
-                        // if !res {
-                        //     tracing::warn!(?nums, a, b, "nope");
-                        // }
-                        return res;
+                        return report_valid(n0, true)
+                            || report_valid(n1, true)
+                            || report_valid(n2, true);
                     }
                     _ => {
                         i += 1;
