@@ -1,0 +1,2 @@
+gen_day day:
+    cargo generate --path ../../day_template/rust --name day-{{day}} --define day={{day}}

@@ -19,3 +19,6 @@ Cargo.lock
 
 # AoC inputs
 **/inputs/input.txt
+
+# env
+**/.env
