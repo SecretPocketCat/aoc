@@ -49,10 +49,7 @@ pub mod solution {
             .enumerate()
             .filter_map(|(i, s)| match i {
                 0 => Some(sum_muls(s)),
-                _ => match s.split_once("do()") {
-                    Some((_, s)) => Some(sum_muls(s)),
-                    None => None,
-                },
+                _ => s.split_once("do()").map(|(_, s)| sum_muls(s)),
             })
             .sum();
         Ok(sum.to_string())
