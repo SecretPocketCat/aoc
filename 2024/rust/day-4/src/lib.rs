@@ -49,26 +49,84 @@ pub mod solution {
 
     #[tracing::instrument(fields(input = format!("{:?}[...]", input.lines().next())))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let char_grid: Vec<Vec<char>> = input.lines().map(|l| l.chars().collect()).collect();
+        let count: usize = char_grid
+            .iter()
+            .enumerate()
+            .map(|(y, row)| {
+                row.iter()
+                    .enumerate()
+                    .filter(|(x, c)| match c {
+                        // look for 'A' which is always in the center
+                        'A' => {
+                            let Some(x_left) = x.checked_add_signed(-1) else {
+                                return false;
+                            };
+                            let Some(y_top) = y.checked_add_signed(-1) else {
+                                return false;
+                            };
+                            let Some(tl) = char_grid.get(y_top).and_then(|row| row.get(x_left))
+                            else {
+                                return false;
+                            };
+                            let Some(tr) = char_grid.get(y_top).and_then(|row| row.get(x + 1))
+                            else {
+                                return false;
+                            };
+                            let Some(bl) = char_grid.get(y + 1).and_then(|row| row.get(x_left))
+                            else {
+                                return false;
+                            };
+                            let Some(br) = char_grid.get(y + 1).and_then(|row| row.get(x + 1))
+                            else {
+                                return false;
+                            };
+                            tracing::trace!(x, y, ?tl, ?tr, ?br, ?bl);
+                            // look at the diagonal for either 'M' or 'S' and then look for the other in the opposite corner
+                            if !match tl {
+                                'M' => br == &'S',
+                                'S' => br == &'M',
+                                _ => false,
+                            } {
+                                return false;
+                            }
+                            // and the same for the other diagonal
+                            if !match tr {
+                                'M' => bl == &'S',
+                                'S' => bl == &'M',
+                                _ => false,
+                            } {
+                                return false;
+                            }
+                            true
+                        }
+                        _ => false,
+                    })
+                    .count()
+            })
+            .sum();
+        Ok(count.to_string())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tracing_test::traced_test;
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "18";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_B: &str = "9";
 
     #[test]
-    #[tracing_test::traced_test]
+    #[traced_test]
     fn day_4_a() {
         let res = solution::part_a(TEST_INPUT);
         assert_eq!(EXPECTED_A, res.unwrap());
     }
 
     #[test]
+    #[traced_test]
     fn day_4_b() {
         let res = solution::part_b(TEST_INPUT);
         assert_eq!(EXPECTED_B, res.unwrap());
