@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["aoc-client", "day-*"]
+members = ["aoc-client", "day-*", "bench-all"]
 default-members = ["day-*"]
 
 [workspace.dependencies]

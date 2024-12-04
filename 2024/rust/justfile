@@ -1,2 +1,9 @@
 gen_day day:
     cargo generate --path ../../day_template/rust --name day-{{day}} --define day={{day}}
+        
+bench_day day part:
+    cargo bench -p day-{{day}} --bench part_{{part}}
+        
+bench:
+    cargo bench -p bench-all
+                

@@ -1,0 +1,24 @@
+[package]
+name = "bench-all"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+aoc-client.workspace = true
+clap.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio = { workspace = true }
+seq-macro = "0.3.5"
+day-1 = { path = "../day-1" }
+day-2 = { path = "../day-2" }
+day-3 = { path = "../day-3" }
+day-4 = { path = "../day-4" }
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "bench"
+harness = false
