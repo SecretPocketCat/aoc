@@ -12,7 +12,7 @@ pub mod solution {
         let mut processed_line_count = 0;
         for line in input.lines() {
             processed_line_count += 1;
-            match line.split_once("|") {
+            match line.split_once('|') {
                 Some((a, b)) => {
                     let a: u32 = a.parse().expect("Valid number a");
                     let b: u32 = b.parse().expect("Valid number b");
@@ -33,9 +33,9 @@ pub mod solution {
             .lines()
             .skip(processed_line_count)
             .filter_map(|l| {
-                let pages: Vec<_> = l.split(",").flat_map(|n| n.parse::<u32>()).collect();
+                let pages: Vec<u32> = l.split(',').flat_map(str::parse).collect();
                 if pages.iter().enumerate().all(|(i, p)| {
-                    let preceding: HashSet<_> = pages.iter().cloned().take(i).collect();
+                    let preceding: HashSet<_> = pages.iter().copied().take(i).collect();
                     match following.get(p) {
                         Some(following) => preceding.is_disjoint(following),
                         None => true,
