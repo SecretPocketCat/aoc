@@ -4,10 +4,7 @@ pub mod solution {
         let count = input
             .lines()
             .filter(|l| {
-                let nums: Vec<_> = l
-                    .split_whitespace()
-                    .flat_map(|num| num.parse::<i64>())
-                    .collect();
+                let nums: Vec<i64> = l.split_whitespace().flat_map(str::parse).collect();
                 let mut inc = None;
                 nums.windows(2).all(|nums| {
                     let delta = nums[1] - nums[0];
@@ -31,16 +28,14 @@ pub mod solution {
 
     #[tracing::instrument(fields(input = format!("{:?}[...]", input.lines().next())))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        fn report_valid(nums: Vec<i64>, dampened: bool) -> bool {
+        fn report_valid(nums: &[i64], dampened: bool) -> bool {
             let mut sign = None;
             let mut i = 0;
-            while let Some(b) = nums.get(i + 1).cloned() {
+            while let Some(b) = nums.get(i + 1).copied() {
                 let a = nums[i];
                 let delta = b - a;
                 let mut invalid = false;
-                if !(1..=3).contains(&delta.abs()) {
-                    invalid = true;
-                } else {
+                if (1..=3).contains(&delta.abs()) {
                     let curr_sign = delta.signum();
                     match sign {
                         Some(sign) if sign != curr_sign => {
@@ -51,6 +46,8 @@ pub mod solution {
                         }
                         _ => {}
                     }
+                } else {
+                    invalid = true;
                 }
 
                 match (invalid, dampened) {
@@ -59,17 +56,17 @@ pub mod solution {
                     }
                     (true, false) => {
                         // remove the initial num in case the sort direction was wrong
-                        let mut n0 = nums.clone();
+                        let mut n0 = nums.to_vec();
                         n0.remove(0);
                         // remove the current index
-                        let mut n1 = nums.clone();
+                        let mut n1 = nums.to_vec();
                         n1.remove(i);
                         // remove the next index
-                        let mut n2 = nums.clone();
+                        let mut n2 = nums.to_vec();
                         n2.remove(i + 1);
-                        return report_valid(n0, true)
-                            || report_valid(n1, true)
-                            || report_valid(n2, true);
+                        return report_valid(&n0, true)
+                            || report_valid(&n1, true)
+                            || report_valid(&n2, true);
                     }
                     _ => {
                         i += 1;
@@ -83,11 +80,8 @@ pub mod solution {
         let count = input
             .lines()
             .filter(|l| {
-                let nums: Vec<_> = l
-                    .split_whitespace()
-                    .flat_map(|num| num.parse::<i64>())
-                    .collect();
-                report_valid(nums, false)
+                let nums: Vec<i64> = l.split_whitespace().flat_map(str::parse).collect();
+                report_valid(&nums, false)
             })
             .count();
         Ok(count.to_string())
