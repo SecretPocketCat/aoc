@@ -17,8 +17,5 @@ Cargo.lock
 .idea/
 .vscode/
 
-# AoC inputs
-**/inputs/input.txt
-
 # env
 **/.env
