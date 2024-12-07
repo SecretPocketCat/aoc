@@ -45,7 +45,6 @@ pub mod solution {
         }
     }
 
-    #[derive(Clone)]
     struct Map {
         guard: Guard,
         walls: HashSet<IVec2>,
@@ -69,15 +68,16 @@ pub mod solution {
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
         let mut map = parse_map(input);
-        let cycle_map = map.clone();
+        let cycle_guard = map.guard.clone();
         let visited = walk_map(&mut map).context("Found a cycle")?;
         let mut cycle_count = 0;
         for c in visited {
-            let mut map = cycle_map.clone();
+            map.guard = cycle_guard.clone();
             map.walls.insert(c);
             if walk_map(&mut map).is_none() {
                 cycle_count += 1;
             }
+            map.walls.remove(&c);
         }
 
         Ok(cycle_count.to_string())
