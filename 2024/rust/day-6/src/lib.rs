@@ -1,6 +1,7 @@
 pub mod solution {
     use std::collections::{HashMap, HashSet};
 
+    use anyhow::Context;
     use glam::{IVec2, UVec2};
     use tracing::warn;
 
@@ -23,6 +24,7 @@ pub mod solution {
         }
     }
 
+    #[derive(Clone)]
     struct Guard {
         coords: IVec2,
         dir: Dir,
@@ -43,6 +45,7 @@ pub mod solution {
         }
     }
 
+    #[derive(Clone)]
     struct Map {
         guard: Guard,
         walls: HashSet<IVec2>,
@@ -56,99 +59,41 @@ pub mod solution {
         }
     }
 
-    struct WalkMapResult {
-        visited: HashSet<IVec2>,
-        wall_hits: HashMap<IVec2, HashSet<Dir>>,
-    }
-    impl WalkMapResult {
-        fn new(guard: &Guard) -> Self {
-            let visited: HashSet<_> = [guard.coords].into();
-            Self {
-                visited,
-                wall_hits: Default::default(),
-            }
-        }
-    }
-
     #[tracing::instrument(fields(input = format!("{:?}[...]", input.lines().next())))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let mut map = parse_map(input);
-        let res = walk_map(&mut map);
-        Ok(res.visited.len().to_string())
+        let visited = walk_map(&mut map).context("Found a cycle")?;
+        Ok(visited.len().to_string())
     }
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
         let mut map = parse_map(input);
-        let walk_res = walk_map(&mut map);
-        let cycle_count: usize = walk_res
-            .wall_hits
-            .iter()
-            .map(|(coords, hit_dirs)| {
-                hit_dirs
-                    .iter()
-                    .filter(|dir| {
-                        let mut cycle_guard = Guard {
-                            coords: *coords,
-                            dir: **dir,
-                        };
-                        let mut cycle = vec![*coords];
-                        for _ in 0..2 {
-                            let possible_coords: Vec<_> = match cycle_guard.dir {
-                                Dir::North => ((cycle_guard.coords.x + 1)..map.size.x as _)
-                                    .map(|x| IVec2::new(x, cycle_guard.coords.y + 1))
-                                    .collect(),
-                                Dir::East => ((cycle_guard.coords.y + 1)..map.size.y as _)
-                                    .map(|y| IVec2::new(cycle_guard.coords.x - 1, y))
-                                    .collect(),
-                                Dir::South => (0..(cycle_guard.coords.x - 1))
-                                    .rev()
-                                    .map(|x| IVec2::new(x, cycle_guard.coords.y - 1))
-                                    .collect(),
-                                Dir::West => (0..(cycle_guard.coords.y - 1))
-                                    .rev()
-                                    .map(|y| IVec2::new(cycle_guard.coords.x + 1, y))
-                                    .collect(),
-                            };
+        let cycle_map = map.clone();
+        let visited = walk_map(&mut map).context("Found a cycle")?;
+        // find bounding box
+        let mut min = map.size;
+        let mut max = UVec2::default();
+        for c in &visited {
+            min.x = min.x.min(c.x as _);
+            min.y = min.y.min(c.y as _);
+            max.x = max.x.max(c.x as _);
+            max.y = max.y.max(c.y as _);
+        }
+        // widen to allow placing walls at the edges of visited coords
+        min = min.saturating_sub(UVec2::ONE);
+        max = (max + UVec2::ONE).min(map.size);
 
-                            if let Some(hit) =
-                                possible_coords.into_iter().find_map(|c| map.walls.get(&c))
-                            {
-                                cycle_guard.coords = *hit;
-                                cycle_guard.rotate_cw();
-                                cycle.push(*hit);
-                            } else {
-                                return false;
-                            }
-                        }
-                        // found 3 corners of a cycle
-                        // check the 4th one isn't block by an existing wall
-                        let empty_coords: Vec<_> = match cycle_guard.dir {
-                            Dir::North => ((cycle_guard.coords.x + 1)..(coords.x - 1) as _)
-                                .map(|x| IVec2::new(x, cycle_guard.coords.y + 1))
-                                .collect(),
-                            Dir::East => ((cycle_guard.coords.y + 1)..(coords.y - 1) as _)
-                                .map(|y| IVec2::new(cycle_guard.coords.x - 1, y))
-                                .collect(),
-                            Dir::South => ((coords.x + 1)..(cycle_guard.coords.x - 1))
-                                .rev()
-                                .map(|x| IVec2::new(x, cycle_guard.coords.y - 1))
-                                .collect(),
-                            Dir::West => ((coords.y + 1)..(cycle_guard.coords.y - 1))
-                                .rev()
-                                .map(|y| IVec2::new(cycle_guard.coords.x + 1, y))
-                                .collect(),
-                        };
-                        if empty_coords.into_iter().any(|c| map.walls.contains(&c)) {
-                            false
-                        } else {
-                            // warn!(?dir, ?cycle, "found a cycle\n");
-                            true
-                        }
-                    })
-                    .count()
-            })
-            .sum();
+        let mut cycle_count = 0;
+        for x in min.x..=max.x {
+            for y in min.y..=max.y {
+                let mut map = cycle_map.clone();
+                map.walls.insert(IVec2::new(x as _, y as _));
+                if walk_map(&mut map).is_none() {
+                    cycle_count += 1;
+                }
+            }
+        }
 
         Ok(cycle_count.to_string())
     }
@@ -195,8 +140,10 @@ pub mod solution {
         }
     }
 
-    fn walk_map(map: &mut Map) -> WalkMapResult {
-        let mut result = WalkMapResult::new(&map.guard);
+    #[must_use]
+    fn walk_map(map: &mut Map) -> Option<HashSet<IVec2>> {
+        let mut visited: HashSet<_> = [map.guard.coords].into();
+        let mut wall_hits: HashMap<_, HashSet<_>> = HashMap::new();
         loop {
             let new_coords = map.guard.move_coords();
             if !map.contains_coords(new_coords) {
@@ -204,21 +151,26 @@ pub mod solution {
                 break;
             } else if map.walls.contains(&new_coords) {
                 // hit wall
-                result
-                    .wall_hits
+                let mut cycle = false;
+                wall_hits
                     .entry(new_coords)
                     .and_modify(|dirs| {
-                        dirs.insert(map.guard.dir);
+                        if !dirs.insert(map.guard.dir) {
+                            cycle = true;
+                        }
                     })
                     .or_insert_with(|| [map.guard.dir].into());
+                if cycle {
+                    return None;
+                }
                 map.guard.rotate_cw();
             } else {
                 // moved into coords
-                result.visited.insert(new_coords);
+                visited.insert(new_coords);
                 map.guard.coords = new_coords;
             }
         }
-        result
+        Some(visited)
     }
 }
 
