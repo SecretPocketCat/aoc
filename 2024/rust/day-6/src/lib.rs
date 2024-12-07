@@ -71,27 +71,12 @@ pub mod solution {
         let mut map = parse_map(input);
         let cycle_map = map.clone();
         let visited = walk_map(&mut map).context("Found a cycle")?;
-        // find bounding box
-        let mut min = map.size;
-        let mut max = UVec2::default();
-        for c in &visited {
-            min.x = min.x.min(c.x as _);
-            min.y = min.y.min(c.y as _);
-            max.x = max.x.max(c.x as _);
-            max.y = max.y.max(c.y as _);
-        }
-        // widen to allow placing walls at the edges of visited coords
-        min = min.saturating_sub(UVec2::ONE);
-        max = (max + UVec2::ONE).min(map.size);
-
         let mut cycle_count = 0;
-        for x in min.x..=max.x {
-            for y in min.y..=max.y {
-                let mut map = cycle_map.clone();
-                map.walls.insert(IVec2::new(x as _, y as _));
-                if walk_map(&mut map).is_none() {
-                    cycle_count += 1;
-                }
+        for c in visited {
+            let mut map = cycle_map.clone();
+            map.walls.insert(c);
+            if walk_map(&mut map).is_none() {
+                cycle_count += 1;
             }
         }
 
