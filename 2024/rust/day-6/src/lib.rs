@@ -14,7 +14,7 @@ pub mod solution {
     }
     impl Dir {
         #[must_use]
-        fn rotate_cw(&self) -> Self {
+        fn rotate_cw(self) -> Self {
             match self {
                 Dir::North => Dir::East,
                 Dir::East => Dir::South,

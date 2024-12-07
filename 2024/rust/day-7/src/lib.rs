@@ -36,7 +36,7 @@ pub mod solution {
                 let (total, nums) = l.split_once(':').expect("Valid example line");
                 let total: u64 = total.parse().expect("Valid total number");
                 let nums: Vec<u64> = nums.split_whitespace().flat_map(str::parse).collect();
-                let permutations: Vec<_> = repeat_n(operations.into_iter(), nums.len() - 1)
+                let permutations: Vec<_> = repeat_n(operations.iter(), nums.len() - 1)
                     .multi_cartesian_product()
                     .collect();
                 // todo:
