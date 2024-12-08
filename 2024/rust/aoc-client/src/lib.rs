@@ -9,6 +9,7 @@ pub async fn get_input(mut root: PathBuf, day: u8) -> anyhow::Result<String> {
     }
     root.push("input.txt");
     let filename = root.as_path();
+    tracing::warn!("?filename");
     match fs::read_to_string(&filename).await {
         Ok(input) if !input.is_empty() => Ok(input),
         _ => {
