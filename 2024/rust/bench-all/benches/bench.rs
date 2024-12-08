@@ -4,7 +4,12 @@ use std::hint::black_box;
 
 fn bench_all(c: &mut Criterion) {
     let inputs = get_inputs();
-    c.bench_function("bench_all", |b| b.iter(|| run_all(black_box(&inputs))));
+    let mut group = c.benchmark_group("bench_all");
+    group
+        .sample_size(20)
+        .measurement_time(std::time::Duration::from_secs(90));
+    group.bench_function("bench_all", |b| b.iter(|| run_all(black_box(&inputs))));
+    group.finish();
 }
 
 criterion_group!(benches, bench_all);

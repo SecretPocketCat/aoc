@@ -2,23 +2,67 @@
 name = "bench-all"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
-anyhow.workspace = true
-aoc-client.workspace = true
-clap.workspace = true
-tracing.workspace = true
-tracing-subscriber.workspace = true
-tokio = { workspace = true }
+anyhow = "1.0.93"
 seq-macro = "0.3.5"
-day-1 = { path = "../day-1" }
-day-2 = { path = "../day-2" }
-day-3 = { path = "../day-3" }
-day-4 = { path = "../day-4" }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
 
-[dev-dependencies]
-criterion.workspace = true
+[dependencies.aoc-client]
+path = "/home/spc/projects/aoc/2024/rust/aoc-client"
+
+[dependencies.clap]
+version = "4.5.21"
+features = ["derive"]
+
+[dependencies.day-1]
+path = "../day-1"
+
+[dependencies.day-2]
+path = "../day-2"
+
+[dependencies.day-3]
+path = "../day-3"
+
+[dependencies.day-4]
+path = "../day-4"
+
+[dependencies.day-5]
+path = "../day-5"
+
+[dependencies.day-6]
+path = "../day-6"
+
+[dependencies.day-7]
+path = "../day-7"
+
+[dependencies.day-8]
+path = "../day-8"
+
+[dependencies.tokio]
+version = "1.41.1"
+features = ["rt-multi-thread", "macros"]
+
+[dev-dependencies.criterion]
+version = "0.5"
+features = ["cargo_bench_support", "rayon"]
+default-features = false
+
+[build-dependencies]
+cargo_toml = "0.21.0"
+toml = "0.8.19"
+
+[lib]
+path = "src/lib.rs"
+name = "bench_all"
+edition = "2021"
+crate-type = ["lib"]
+required-features = []
 
 [[bench]]
+path = "benches/bench.rs"
 name = "bench"
 harness = false
+required-features = []
