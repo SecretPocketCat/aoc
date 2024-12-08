@@ -45,7 +45,6 @@ pub mod solution {
             .values()
             .filter(|c| c.len() > 1)
             .flat_map(|coords| {
-                warn!(?coords);
                 coords.iter().combinations(2).flat_map(|coords| {
                     let a1 = coords[0];
                     let a2 = coords[1];
@@ -54,11 +53,8 @@ pub mod solution {
                     } else {
                         (a2, a1)
                     };
-                    warn!(?a1, ?a2);
                     let delta = a2.as_ivec2() - a1.as_ivec2();
                     let antinodes = [a1.as_ivec2() - delta, a2.as_ivec2() + delta];
-                    warn!(?antinodes);
-
                     antinodes
                         .into_iter()
                         .filter(|an| map.contains_ivec2_coords(*an))
@@ -71,7 +67,51 @@ pub mod solution {
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let map = Map::parse(input);
+        #[allow(clippy::cast_precision_loss)]
+        let vec_capacity = ((map.size.x.pow(2) + map.size.y.pow(2)) as f32)
+            .sqrt()
+            .ceil() as usize;
+        let antinodes: HashSet<_> = map
+            .antennas
+            .values()
+            .filter(|c| c.len() > 1)
+            .flat_map(|coords| {
+                coords.iter().combinations(2).flat_map(|coords| {
+                    let a1 = coords[0];
+                    let a2 = coords[1];
+                    let (a1, a2) = if a1.y < a2.y || a1.x < a2.x {
+                        (a1, a2)
+                    } else {
+                        (a2, a1)
+                    };
+                    let delta = a2.as_ivec2() - a1.as_ivec2();
+                    let mut antinodes = Vec::with_capacity(vec_capacity);
+                    // up from earlier/higher antinode
+                    let mut an = a1.as_ivec2();
+                    loop {
+                        if map.contains_ivec2_coords(an) {
+                            antinodes.push(an);
+                        } else {
+                            break;
+                        }
+                        an -= delta;
+                    }
+                    // up from earlier/higher antinode
+                    let mut an = a2.as_ivec2();
+                    loop {
+                        if map.contains_ivec2_coords(an) {
+                            antinodes.push(an);
+                        } else {
+                            break;
+                        }
+                        an += delta;
+                    }
+                    antinodes.into_iter().map(|an| an.as_uvec2())
+                })
+            })
+            .collect();
+        Ok(antinodes.len().to_string())
     }
 }
 
@@ -82,7 +122,7 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "14";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_B: &str = "34";
 
     #[test]
     #[traced_test]
