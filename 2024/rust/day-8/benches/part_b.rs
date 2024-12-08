@@ -1,11 +1,11 @@
 use aoc_client::block_on_input;
 use criterion::{criterion_group, criterion_main, Criterion};
-use day_{{day}}::solution::part_b;
+use day_8::solution::part_b;
 use std::hint::black_box;
 
 fn part_b_benchmark(c: &mut Criterion) {
-    let input = block_on_input({{day}});
-    let mut group = c.benchmark_group("day-{{day}}");
+    let input = block_on_input(8);
+    let mut group = c.benchmark_group("day-8");
     // group
     //     .sample_size(10)
     //     .measurement_time(std::time::Duration::from_secs(30));

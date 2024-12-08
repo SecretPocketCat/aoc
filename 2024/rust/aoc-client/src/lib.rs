@@ -3,7 +3,11 @@ use tokio::fs;
 
 #[tracing::instrument]
 pub async fn get_input(mut root: PathBuf, day: u8) -> anyhow::Result<String> {
-    root.push(format!("day-{day}/inputs/input.txt"));
+    root.push(format!("target/inputs/day-{day}"));
+    if !root.exists() {
+        fs::create_dir_all(&root).await?;
+    }
+    root.push("input.txt");
     let filename = root.as_path();
     tracing::warn!("?filename");
     match fs::read_to_string(&filename).await {
