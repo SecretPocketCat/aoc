@@ -1,10 +1,10 @@
 pub mod solution {
-    #[tracing::instrument(fields(input = format!("{:?}[...]", input.lines().next())))]
+    #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         todo!("a")
     }
 
-    #[tracing::instrument(fields(input = format!("{:?}[...]", input.lines().next())))]
+    #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
         todo!("b")
     }
