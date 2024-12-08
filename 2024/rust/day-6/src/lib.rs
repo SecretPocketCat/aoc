@@ -3,6 +3,7 @@ pub mod solution {
 
     use anyhow::Context;
     use glam::{IVec2, UVec2};
+    use rayon::prelude::*;
     use tracing::warn;
 
     #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -45,6 +46,7 @@ pub mod solution {
         }
     }
 
+    #[derive(Clone)]
     struct Map {
         guard: Guard,
         walls: HashSet<IVec2>,
@@ -68,17 +70,16 @@ pub mod solution {
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
         let mut map = parse_map(input);
-        let cycle_guard = map.guard.clone();
+        let cycle_map = map.clone();
         let visited = walk_map(&mut map).context("Found a cycle")?;
-        let mut cycle_count = 0;
-        for c in visited {
-            map.guard = cycle_guard.clone();
-            map.walls.insert(c);
-            if walk_map(&mut map).is_none() {
-                cycle_count += 1;
-            }
-            map.walls.remove(&c);
-        }
+        let cycle_count: usize = visited
+            .into_par_iter()
+            .map(|c| {
+                let mut map = cycle_map.clone();
+                map.walls.insert(c);
+                usize::from(walk_map(&mut map).is_none())
+            })
+            .sum();
 
         Ok(cycle_count.to_string())
     }
