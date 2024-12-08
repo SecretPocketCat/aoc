@@ -12,6 +12,7 @@ tracing-subscriber.workspace = true
 tracing-test.workspace = true
 tokio.workspace = true
 glam.workspace = true
+rayon.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
