@@ -1,7 +1,6 @@
 pub mod solution {
-    // use std::collections::HashSet;
-
     use itertools::{repeat_n, Itertools};
+    use rayon::prelude::*;
     use tracing::warn;
 
     #[derive(Debug, Clone, Copy)]
@@ -30,8 +29,9 @@ pub mod solution {
 
     #[tracing::instrument(skip_all)]
     pub fn eval(input: &str, operations: &[Operation]) -> anyhow::Result<String> {
-        let sum: u64 = input
-            .lines()
+        let lines: Vec<_> = input.lines().collect();
+        let sum: u64 = lines
+            .into_par_iter()
             .filter_map(|l| {
                 let (total, nums) = l.split_once(':').expect("Valid example line");
                 let total: u64 = total.parse().expect("Valid total number");

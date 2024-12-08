@@ -6,9 +6,8 @@ use std::hint::black_box;
 fn part_b_benchmark(c: &mut Criterion) {
     let input = block_on_input(7);
     let mut group = c.benchmark_group("day-7");
-    group
-        .sample_size(10)
-        .measurement_time(std::time::Duration::from_secs(30));
+    group.sample_size(10);
+    // group.measurement_time(std::time::Duration::from_secs(30));
     group.bench_function("part_b", |b| b.iter(|| part_b(black_box(&input))));
     group.finish();
 }
