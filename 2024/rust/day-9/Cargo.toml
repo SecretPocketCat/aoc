@@ -1,0 +1,28 @@
+[package]
+name = "day-9"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+aoc-client.workspace = true
+clap.workspace = true
+itertools.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-test.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "part_a"
+harness = false
+
+[[bench]]
+name = "part_b"
+harness = false
