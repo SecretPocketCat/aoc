@@ -35,15 +35,27 @@ pub mod solution {
             }
             reached
         }
+
+        fn sum_paths(&self, pos: UVec2, curr_height: u32) -> usize {
+            DIRS.iter()
+                .filter_map(|d| match self.move_by(pos, *d) {
+                    Some((_, 9)) if curr_height == 8 => Some(1),
+                    Some((target, height)) if height == curr_height + 1 => {
+                        Some(self.sum_paths(target, height))
+                    }
+                    _ => None,
+                })
+                .sum()
+        }
     }
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let map = parse_map(input);
-        let mut sorted_trail_heads: Vec<_> = map.0.iter().filter(|(_, v)| **v == 0).collect();
-        sorted_trail_heads.sort_unstable_by_key(|(pos, _)| pos.y);
-        let reachable_tails_count: usize = sorted_trail_heads
-            .into_iter()
+        let reachable_tails_count: usize = map
+            .0
+            .iter()
+            .filter(|(_, v)| **v == 0)
             .map(|(pos, _)| map.walk(*pos, 0, HashSet::new()).len())
             .sum();
         Ok(reachable_tails_count.to_string())
@@ -51,20 +63,14 @@ pub mod solution {
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        let _map = parse_map(input);
-        // let reachable_tails_count = map
-        //     .iter()
-        //     .filter(|(k, v)| {
-        //         if **v == 9 {
-        //             // todo
-        //             true
-        //         } else {
-        //             false
-        //         }
-        //     })
-        //     .count();
-        // Ok(reachable_tails_count.to_string())
-        todo!("b")
+        let map = parse_map(input);
+        let trails_score: usize = map
+            .0
+            .iter()
+            .filter(|(_, v)| **v == 0)
+            .map(|(pos, _)| map.sum_paths(*pos, 0))
+            .sum();
+        Ok(trails_score.to_string())
     }
 
     fn parse_map(input: &str) -> Map {
@@ -109,6 +115,6 @@ mod tests {
     #[traced_test]
     fn day_10_b() {
         let res = solution::part_b(TEST_INPUT);
-        assert_eq!("todo_expected_b", res.unwrap());
+        assert_eq!("81", res.unwrap());
     }
 }
