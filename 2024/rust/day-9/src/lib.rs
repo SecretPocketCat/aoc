@@ -1,11 +1,13 @@
 pub mod solution {
+    use std::collections::HashSet;
+
     use tracing::warn;
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let blocks: Vec<_> = input
             .chars()
-            .flat_map(|c| c.to_digit(10))
+            .filter_map(|c| c.to_digit(10))
             .map(|n| n as usize)
             .collect();
         let mut file_blocks: Vec<_> = blocks.iter().copied().step_by(2).collect();
@@ -16,23 +18,15 @@ pub mod solution {
             if pos >= block_count {
                 break;
             }
-
             let file = i % 2 == 0;
             checksum += if file {
-                warn!(i, block, "\nfile");
                 // unmoved file blocks
                 let id = i / 2;
                 let end = (pos + block).min(block_count);
-                let sum = (pos..end)
-                    .map(|pos| {
-                        warn!(id, pos, val = id * pos);
-                        id * pos
-                    })
-                    .sum();
+                let sum = (pos..end).map(|pos| id * pos).sum();
                 pos = end;
                 sum
             } else {
-                warn!(i, block, "\nfree");
                 let mut sum = 0;
                 let mut free_block_size = *block;
                 while free_block_size > 0 {
@@ -50,12 +44,7 @@ pub mod solution {
                         };
                         let id = moved_i;
                         let end = (pos + moved_block_size).min(block_count);
-                        sum += (pos..end)
-                            .map(|pos| {
-                                warn!(id, pos, val = id * pos);
-                                id * pos
-                            })
-                            .sum::<usize>();
+                        sum += (pos..end).map(|pos| id * pos).sum::<usize>();
                         pos = end;
                         if pos >= block_count {
                             break;
@@ -72,7 +61,56 @@ pub mod solution {
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let blocks: Vec<_> = input
+            .chars()
+            .filter_map(|c| c.to_digit(10))
+            .map(|n| n as usize)
+            .collect();
+        let mut file_blocks: Vec<_> = blocks.iter().copied().step_by(2).enumerate().collect();
+        let mut processable_files: HashSet<_> = file_blocks.iter().map(|(id, _)| *id).collect();
+        let mut checksum = 0;
+        let mut pos = 0;
+        let mut dbg_str = String::new();
+        for (i, block) in blocks.iter().enumerate() {
+            let file = i % 2 == 0;
+            checksum += if file {
+                // unmoved file blocks
+                let id = i / 2;
+                if !processable_files.contains(&id) {
+                    pos += block;
+                    continue;
+                }
+                let end = pos + block;
+                let sum = (pos..end).map(|pos| id * pos).sum();
+                dbg_str.push_str(&(pos..end).map(|_| id.to_string()).collect::<String>());
+                pos = end;
+                sum
+            } else {
+                let mut block_rem = *block;
+                let mut sum = 0;
+                while block_rem > 0 {
+                    if let Some(f_i) = file_blocks
+                        .iter()
+                        .rposition(|(file_id, b)| (*file_id * 2) > i && *b <= block_rem)
+                    {
+                        let (file_id, file_block_size) = file_blocks.remove(f_i);
+                        processable_files.remove(&file_id);
+                        let end = pos + file_block_size;
+                        sum += (pos..end).map(|pos| file_id * pos).sum::<usize>();
+                        dbg_str
+                            .push_str(&(pos..end).map(|_| file_id.to_string()).collect::<String>());
+                        block_rem -= file_block_size;
+                        pos += file_block_size;
+                    } else {
+                        break;
+                    }
+                }
+                pos += block_rem;
+                dbg_str.push_str(&(0..block_rem).map(|_| '.').collect::<String>());
+                sum
+            };
+        }
+        Ok(checksum.to_string())
     }
 }
 
@@ -83,7 +121,7 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "1928";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_B: &str = "2858";
 
     #[test]
     #[traced_test]
