@@ -20,6 +20,9 @@ features = ["derive"]
 [dependencies.day-1]
 path = "../day-1"
 
+[dependencies.day-10]
+path = "../day-10"
+
 [dependencies.day-2]
 path = "../day-2"
 
