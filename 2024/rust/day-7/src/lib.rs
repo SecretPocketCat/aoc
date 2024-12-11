@@ -38,32 +38,30 @@ pub mod solution {
                 let (total, nums) = l.split_once(':').expect("Valid example line");
                 let total: u64 = total.parse().expect("Valid total number");
                 let nums: Vec<u64> = nums.split_whitespace().flat_map(str::parse).collect();
-                let permutations: Vec<_> = repeat_n(operations.iter(), nums.len() - 1)
+                repeat_n(operations.iter().copied(), nums.len() - 1)
                     .multi_cartesian_product()
-                    .collect();
-                // todo:
-                // let mut cache = HashSet::new();
-                for ops in permutations {
-                    let mut val = nums[0];
-                    for (op_i, op) in ops.iter().enumerate() {
-                        val = match op {
-                            Operation::Addition => val + nums[op_i + 1],
-                            Operation::Multiplication => val * nums[op_i + 1],
-                            Operation::Concat => {
-                                let b = nums[op_i + 1];
-                                val * POWERS_OF_10[b.count_digits()] + b
-                            }
-                        };
-                    }
-                    if val == total {
-                        return Some(val);
-                    }
-                }
-
-                None
+                    .any(|ops| eval_ops(nums[0], 0, &nums, &ops) == total)
+                    .then_some(total)
             })
             .sum();
         Ok(sum.to_string())
+    }
+
+    fn eval_ops(val: u64, i: usize, nums: &[u64], ops: &[Operation]) -> u64 {
+        let Some(op) = ops.get(i) else {
+            return val;
+        };
+        let next = nums[i + 1];
+        match op {
+            Operation::Addition => eval_ops(val + next, i + 1, nums, ops),
+            Operation::Multiplication => eval_ops(val * next, i + 1, nums, ops),
+            Operation::Concat => eval_ops(
+                val * POWERS_OF_10[next.count_digits()] + next,
+                i + 1,
+                nums,
+                ops,
+            ),
+        }
     }
 }
 
