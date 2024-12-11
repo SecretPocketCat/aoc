@@ -1,5 +1,7 @@
 pub mod solution {
+    use count_digits::CountDigits;
     use itertools::{repeat_n, Itertools};
+    use math::POWERS_OF_10;
     use rayon::prelude::*;
     use tracing::warn;
 
@@ -42,18 +44,19 @@ pub mod solution {
                 // todo:
                 // let mut cache = HashSet::new();
                 for ops in permutations {
-                    let mut res = nums[0];
+                    let mut val = nums[0];
                     for (op_i, op) in ops.iter().enumerate() {
-                        res = match op {
-                            Operation::Addition => res + nums[op_i + 1],
-                            Operation::Multiplication => res * nums[op_i + 1],
-                            Operation::Concat => (res.to_string() + &nums[op_i + 1].to_string())
-                                .parse()
-                                .expect("Concatenated number"),
+                        val = match op {
+                            Operation::Addition => val + nums[op_i + 1],
+                            Operation::Multiplication => val * nums[op_i + 1],
+                            Operation::Concat => {
+                                let b = nums[op_i + 1];
+                                val * POWERS_OF_10[b.count_digits()] + b
+                            }
                         };
                     }
-                    if res == total {
-                        return Some(res);
+                    if val == total {
+                        return Some(val);
                     }
                 }
 
