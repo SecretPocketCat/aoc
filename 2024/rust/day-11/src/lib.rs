@@ -13,30 +13,31 @@ pub mod solution {
         Ok(eval(input, 75).to_string())
     }
 
-    pub fn eval_nums(nums: &mut Vec<u64>) {
-        for i in (0..nums.len()).rev() {
-            let n = nums[i];
-            let digits = LazyCell::new(|| n.count_digits());
-            nums[i] = match n {
-                0 => 1,
-                n if *digits % 2 == 0 => {
-                    let digits = *digits;
-                    let a = n / 10u64.pow((digits / 2) as _);
-                    let b = n % 10u64.pow((digits / 2) as _);
-                    nums.insert(i + 1, b);
-                    a
-                }
-                n => n * 2024,
-            };
+    pub fn eval_num(num: u64, iterations: u8) -> u64 {
+        if iterations == 0 {
+            return 1;
+        }
+
+        let rem_iter = iterations - 1;
+        let digits = LazyCell::new(|| num.count_digits());
+        match num {
+            0 => eval_num(1, rem_iter),
+            n if *digits % 2 == 0 => {
+                let digits = *digits;
+                let a = n / 10u64.pow((digits / 2) as _);
+                let b = n % 10u64.pow((digits / 2) as _);
+                eval_num(a, rem_iter) + eval_num(b, rem_iter)
+            }
+            n => eval_num(n * 2024, rem_iter),
         }
     }
 
-    pub fn eval(input: &str, iterations: u8) -> usize {
-        let mut nums: Vec<u64> = input.split_whitespace().flat_map(str::parse).collect();
-        for _ in 0..iterations {
-            eval_nums(&mut nums);
-        }
-        nums.len()
+    pub fn eval(input: &str, iterations: u8) -> u64 {
+        input
+            .split_whitespace()
+            .flat_map(str::parse)
+            .map(|num| eval_num(num, iterations))
+            .sum()
     }
 }
 
@@ -56,15 +57,15 @@ mod tests {
         assert_eq!(EXPECTED_A, res.unwrap());
     }
 
-    #[test_case(vec![0, 1, 10, 99, 999] => vec![1, 2024, 1, 0, 9, 9, 2_021_976])]
-    #[test_case(vec![125, 17] => vec![253_000, 1, 7])]
-    #[test_case(vec![253_000, 1, 7] => vec![253, 0, 2024, 14_168])]
-    #[test_case(vec![253, 0, 2024, 14_168] => vec![512_072, 1, 20, 24, 28_676_032])]
-    #[test_case(vec![512_072, 1, 20, 24, 28_676_032] => vec![512, 72, 2024, 2, 0, 2, 4, 2867, 6032])]
-    #[test_case(vec![512, 72, 2024, 2, 0, 2, 4, 2867, 6032] => vec![1_036_288, 7, 2, 20, 24, 4048, 1, 4048, 8096, 28, 67, 60, 32])]
+    #[test_case(0, 1 => 1)]
+    #[test_case(0, 2 => 1)]
+    #[test_case(0, 3 => 2)]
+    #[test_case(1, 1 => 1)]
+    #[test_case(2024, 1 => 2)]
+    #[test_case(99, 1 => 2)]
+    #[test_case(99, 2 => 2)]
     #[traced_test]
-    fn day_11_eval_nums(mut nums: Vec<u64>) -> Vec<u64> {
-        solution::eval_nums(&mut nums);
-        nums
+    fn day_11_eval_num(num: u64, iterations: u8) -> u64 {
+        solution::eval_num(num, iterations)
     }
 }
