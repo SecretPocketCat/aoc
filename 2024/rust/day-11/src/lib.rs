@@ -3,32 +3,11 @@ pub mod solution {
     use std::{cell::LazyCell, collections::HashMap};
     use tracing::warn;
 
+    use math::POWERS_OF_10;
+
     #[derive(PartialEq, Eq, Hash)]
     pub struct CacheKey(u64, u8);
     type Cache = HashMap<CacheKey, u64>;
-
-    const POWERS_OF_10: [u64; 20] = [
-        1,
-        10,
-        100,
-        1_000,
-        10_000,
-        100_000,
-        1_000_000,
-        10_000_000,
-        100_000_000,
-        1_000_000_000,
-        10_000_000_000,
-        100_000_000_000,
-        1_000_000_000_000,
-        10_000_000_000_000,
-        100_000_000_000_000,
-        1_000_000_000_000_000,
-        10_000_000_000_000_000,
-        100_000_000_000_000_000,
-        1_000_000_000_000_000_000,
-        10_000_000_000_000_000_000,
-    ];
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {

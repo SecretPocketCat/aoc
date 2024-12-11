@@ -1,7 +1,7 @@
 pub mod solution {
-    // use std::collections::HashSet;
-
-    use itertools::{repeat_n, Itertools};
+    use count_digits::CountDigits;
+    use math::POWERS_OF_10;
+    use rayon::prelude::*;
     use tracing::warn;
 
     #[derive(Debug, Clone, Copy)]
@@ -30,37 +30,41 @@ pub mod solution {
 
     #[tracing::instrument(skip_all)]
     pub fn eval(input: &str, operations: &[Operation]) -> anyhow::Result<String> {
-        let sum: u64 = input
-            .lines()
+        let lines: Vec<_> = input.lines().collect();
+        let sum: u64 = lines
+            .into_par_iter()
             .filter_map(|l| {
                 let (total, nums) = l.split_once(':').expect("Valid example line");
                 let total: u64 = total.parse().expect("Valid total number");
                 let nums: Vec<u64> = nums.split_whitespace().flat_map(str::parse).collect();
-                let permutations: Vec<_> = repeat_n(operations.iter(), nums.len() - 1)
-                    .multi_cartesian_product()
-                    .collect();
-                // todo:
-                // let mut cache = HashSet::new();
-                for ops in permutations {
-                    let mut res = nums[0];
-                    for (op_i, op) in ops.iter().enumerate() {
-                        res = match op {
-                            Operation::Addition => res + nums[op_i + 1],
-                            Operation::Multiplication => res * nums[op_i + 1],
-                            Operation::Concat => (res.to_string() + &nums[op_i + 1].to_string())
-                                .parse()
-                                .expect("Concatenated number"),
-                        };
-                    }
-                    if res == total {
-                        return Some(res);
-                    }
-                }
-
-                None
+                eval_ops(nums[0], total, 0, &nums, operations)
             })
             .sum();
         Ok(sum.to_string())
+    }
+
+    fn eval_ops(
+        val: u64,
+        target_total: u64,
+        i: usize,
+        nums: &[u64],
+        ops: &[Operation],
+    ) -> Option<u64> {
+        if i == nums.len() - 1 {
+            return (val == target_total).then_some(val);
+        }
+        let next = nums[i + 1];
+        ops.iter().find_map(|op| match op {
+            Operation::Addition => eval_ops(val + next, target_total, i + 1, nums, ops),
+            Operation::Multiplication => eval_ops(val * next, target_total, i + 1, nums, ops),
+            Operation::Concat => eval_ops(
+                val * POWERS_OF_10[next.count_digits()] + next,
+                target_total,
+                i + 1,
+                nums,
+                ops,
+            ),
+        })
     }
 }
 

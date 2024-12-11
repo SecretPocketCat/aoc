@@ -1,12 +1,14 @@
 [workspace]
 resolver = "2"
-members = ["aoc-client", "day-*", "bench-all"]
+members = ["aoc-client", "math", "day-*", "bench-all"]
 default-members = ["day-*"]
 
 [workspace.dependencies]
-anyhow = "1.0.93"
 aoc-client = { path = "aoc-client" }
+math = { path = "math" }
+anyhow = "1.0.93"
 clap = { version = "4.5.21", features = ["derive"] }
+count-digits = "0.5.1"
 criterion = { version = "0.5", default-features = false, features = [
   "cargo_bench_support",
   "rayon",
