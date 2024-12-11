@@ -3,6 +3,29 @@ pub mod solution {
     use std::cell::LazyCell;
     use tracing::warn;
 
+    const POWERS_OF_10: [u64; 20] = [
+        1,
+        10,
+        100,
+        1_000,
+        10_000,
+        100_000,
+        1_000_000,
+        10_000_000,
+        100_000_000,
+        1_000_000_000,
+        10_000_000_000,
+        100_000_000_000,
+        1_000_000_000_000,
+        10_000_000_000_000,
+        100_000_000_000_000,
+        1_000_000_000_000_000,
+        10_000_000_000_000_000,
+        100_000_000_000_000_000,
+        1_000_000_000_000_000_000,
+        10_000_000_000_000_000_000,
+    ];
+
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         Ok(eval(input, 25).to_string())
@@ -24,8 +47,9 @@ pub mod solution {
             0 => eval_num(1, rem_iter),
             n if *digits % 2 == 0 => {
                 let digits = *digits;
-                let a = n / 10u64.pow((digits / 2) as _);
-                let b = n % 10u64.pow((digits / 2) as _);
+                let divisor = POWERS_OF_10[digits / 2];
+                let a = n / divisor;
+                let b = n % divisor;
                 eval_num(a, rem_iter) + eval_num(b, rem_iter)
             }
             n => eval_num(n * 2024, rem_iter),
