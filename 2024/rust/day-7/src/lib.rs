@@ -1,6 +1,5 @@
 pub mod solution {
     use count_digits::CountDigits;
-    use itertools::{repeat_n, Itertools};
     use math::POWERS_OF_10;
     use rayon::prelude::*;
     use tracing::warn;
@@ -38,30 +37,34 @@ pub mod solution {
                 let (total, nums) = l.split_once(':').expect("Valid example line");
                 let total: u64 = total.parse().expect("Valid total number");
                 let nums: Vec<u64> = nums.split_whitespace().flat_map(str::parse).collect();
-                repeat_n(operations.iter().copied(), nums.len() - 1)
-                    .multi_cartesian_product()
-                    .any(|ops| eval_ops(nums[0], 0, &nums, &ops) == total)
-                    .then_some(total)
+                eval_ops(nums[0], total, 0, &nums, operations)
             })
             .sum();
         Ok(sum.to_string())
     }
 
-    fn eval_ops(val: u64, i: usize, nums: &[u64], ops: &[Operation]) -> u64 {
-        let Some(op) = ops.get(i) else {
-            return val;
-        };
+    fn eval_ops(
+        val: u64,
+        target_total: u64,
+        i: usize,
+        nums: &[u64],
+        ops: &[Operation],
+    ) -> Option<u64> {
+        if i == nums.len() - 1 {
+            return (val == target_total).then_some(val);
+        }
         let next = nums[i + 1];
-        match op {
-            Operation::Addition => eval_ops(val + next, i + 1, nums, ops),
-            Operation::Multiplication => eval_ops(val * next, i + 1, nums, ops),
+        ops.iter().find_map(|op| match op {
+            Operation::Addition => eval_ops(val + next, target_total, i + 1, nums, ops),
+            Operation::Multiplication => eval_ops(val * next, target_total, i + 1, nums, ops),
             Operation::Concat => eval_ops(
                 val * POWERS_OF_10[next.count_digits()] + next,
+                target_total,
                 i + 1,
                 nums,
                 ops,
             ),
-        }
+        })
     }
 }
 
