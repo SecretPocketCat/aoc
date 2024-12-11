@@ -20,6 +20,12 @@ features = ["derive"]
 [dependencies.day-1]
 path = "../day-1"
 
+[dependencies.day-10]
+path = "../day-10"
+
+[dependencies.day-11]
+path = "../day-11"
+
 [dependencies.day-2]
 path = "../day-2"
 
@@ -40,6 +46,9 @@ path = "../day-7"
 
 [dependencies.day-8]
 path = "../day-8"
+
+[dependencies.day-9]
+path = "../day-9"
 
 [dependencies.tokio]
 version = "1.41.1"
