@@ -1,5 +1,8 @@
 pub mod solution {
-    use std::{collections::HashMap, ops::Range};
+    use std::{
+        collections::{HashMap, HashSet},
+        ops::Range,
+    };
 
     use glam::{IVec2, UVec2};
     use nom::{
@@ -38,7 +41,7 @@ pub mod solution {
     }
 
     struct Robot {
-        initial_position: UVec2,
+        position: UVec2,
         velocity: IVec2,
     }
     impl Robot {
@@ -49,17 +52,16 @@ pub mod solution {
                 preceded(tag("v="), parse_ivec2),
             )
             .map(|(position, velocity)| Self {
-                initial_position: position.as_uvec2(),
+                position: position.as_uvec2(),
                 velocity,
             })
             .parse(input)
         }
 
         pub fn quadrant(&self, step_count: u8, map: &Map) -> Option<u8> {
-            let final_pos = (self.initial_position.as_ivec2()
-                + self.velocity * i32::from(step_count))
-            .rem_euclid(map.size.as_ivec2())
-            .as_uvec2();
+            let final_pos = (self.position.as_ivec2() + self.velocity * i32::from(step_count))
+                .rem_euclid(map.size.as_ivec2())
+                .as_uvec2();
             map.quadrant(final_pos)
         }
     }
@@ -92,7 +94,33 @@ pub mod solution {
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let map = Map::new(UVec2::new(101, 103));
+        let lines: Vec<_> = input.lines().collect();
+        let mut robots: Vec<_> = lines
+            .into_iter()
+            .map(|l| {
+                let (_, robot) = Robot::parse(l).expect("Valid robot line");
+                robot
+            })
+            .collect();
+
+        let mut robot_positions = HashSet::with_capacity(robots.len());
+        for i in 1..100_000 {
+            robot_positions.clear();
+            for r in &mut robots {
+                r.position = (r.position.as_ivec2() + r.velocity)
+                    .rem_euclid(map.size.as_ivec2())
+                    .as_uvec2();
+                robot_positions.insert(r.position);
+                if (1..10)
+                    .all(|offset| robot_positions.contains(&(r.position + (UVec2::ONE * offset))))
+                {
+                    return Ok(i.to_string());
+                }
+            }
+        }
+
+        unreachable!();
     }
 
     fn parse_ivec2(input: &str) -> IResult<&str, IVec2> {
@@ -109,7 +137,7 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "12";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_B: &str = "7774";
 
     #[test]
     #[traced_test]
@@ -121,7 +149,7 @@ mod tests {
     #[test]
     #[traced_test]
     fn day_14_b() {
-        let res = solution::part_b(TEST_INPUT);
+        let res = solution::part_b(include_str!("../../target/inputs/day-14/input.txt"));
         assert_eq!(EXPECTED_B, res.unwrap());
     }
 }
