@@ -58,10 +58,14 @@ pub mod solution {
             .parse(input)
         }
 
-        pub fn quadrant(&self, step_count: u8, map: &Map) -> Option<u8> {
-            let final_pos = (self.position.as_ivec2() + self.velocity * i32::from(step_count))
+        pub fn step(&self, step_count: u32, map: &Map) -> UVec2 {
+            (self.position.as_ivec2() + self.velocity * step_count as i32)
                 .rem_euclid(map.size.as_ivec2())
-                .as_uvec2();
+                .as_uvec2()
+        }
+
+        pub fn quadrant(&self, step_count: u32, map: &Map) -> Option<u8> {
+            let final_pos = self.step(step_count, map);
             map.quadrant(final_pos)
         }
     }
@@ -105,19 +109,15 @@ pub mod solution {
             .collect();
 
         let mut robot_positions = HashSet::with_capacity(robots.len());
-        for i in 1..100_000 {
+        'seconds: for i in 1..100_000 {
             robot_positions.clear();
             for r in &mut robots {
-                r.position = (r.position.as_ivec2() + r.velocity)
-                    .rem_euclid(map.size.as_ivec2())
-                    .as_uvec2();
-                robot_positions.insert(r.position);
-                if (1..10)
-                    .all(|offset| robot_positions.contains(&(r.position + (UVec2::ONE * offset))))
-                {
-                    return Ok(i.to_string());
+                let pos = r.step(i, &map);
+                if !robot_positions.insert(pos) {
+                    continue 'seconds;
                 }
             }
+            return Ok(i.to_string());
         }
 
         unreachable!();
