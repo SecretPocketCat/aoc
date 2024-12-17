@@ -6,6 +6,9 @@ pub mod solution {
 
     const DIRS: [IVec2; 4] = [IVec2::NEG_Y, IVec2::X, IVec2::Y, IVec2::NEG_X];
 
+    struct NeighbourCount(usize);
+    type VisitedMap = HashMap<UVec2, NeighbourCount>;
+
     #[derive(Debug)]
     struct Map(HashMap<UVec2, char>);
     impl Map {
@@ -32,7 +35,7 @@ pub mod solution {
             self.0.get(&target).map(|height| (target, *height))
         }
 
-        fn drain_area(&mut self, pos: UVec2) -> usize {
+        fn drain_area(&mut self, pos: UVec2) -> VisitedMap {
             let val = self.0[&pos];
             let mut visited = HashMap::new();
             let mut q = Vec::with_capacity(4);
@@ -48,18 +51,13 @@ pub mod solution {
                         _ => None,
                     })
                     .collect();
-                visited.insert(pos, neighbours.len());
+                visited.insert(pos, NeighbourCount(neighbours.len()));
                 q.append(&mut neighbours);
             }
             for pos in visited.keys() {
                 self.0.remove(pos);
             }
-            let area = visited.len();
-            let region: usize = visited
-                .values()
-                .map(|neighbour_count| 4 - neighbour_count)
-                .sum();
-            area * region
+            visited
         }
     }
 
@@ -68,7 +66,13 @@ pub mod solution {
         let mut map = Map::new(input);
         let mut price = 0;
         while let Some(pos) = map.0.keys().next() {
-            price += map.drain_area(*pos);
+            let visited = map.drain_area(*pos);
+            let area = visited.len();
+            let region: usize = visited
+                .values()
+                .map(|neighbour_count| 4 - neighbour_count.0)
+                .sum();
+            price += area * region;
         }
         Ok(price.to_string())
     }
