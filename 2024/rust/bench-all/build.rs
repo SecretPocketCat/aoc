@@ -78,7 +78,7 @@ fn main() {
             let name = &d.code_name;
             format!(
                 r#"
-    let input = &inputs[{num} - 1];
+    let input = &inputs[&{num}];
     {name}::solution::part_a(&input).expect("Valid result for {name} part a");
     {name}::solution::part_b(&input).expect("Valid result for {name} part b");
 "#,
@@ -94,7 +94,7 @@ fn main() {
             format!(
                 r#"
     let input = aoc_client::get_input(root.clone(), {num}).await.expect("Get input for {name}");
-    inputs.push(input);
+    inputs.insert({num}, input);
 "#,
             )
         })
@@ -103,15 +103,15 @@ fn main() {
 
     let runner_rs = format!(
         r#"
-pub fn run(inputs: &[String]) {{
+pub fn run(inputs: &HashMap<usize, String>) {{
 {code_run}
 }}
 
-pub fn inputs() -> Vec<String> {{
+pub fn inputs() -> HashMap<usize, String> {{
     let root = std::fs::canonicalize("..").expect("Parent dir");
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {{
-        let mut inputs = Vec::new();
+        let mut inputs = HashMap::new();
         {code_get_input}
         inputs
      }})
