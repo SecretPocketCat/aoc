@@ -1,5 +1,5 @@
 pub mod solution {
-    use std::collections::HashSet;
+    use std::{cmp::Ordering, collections::HashSet};
 
     use glam::UVec2;
     use grid_pathfinding::PathingGrid;
@@ -14,24 +14,11 @@ pub mod solution {
         let size = usize::from(size);
         let mut grid = PathingGrid::new(size, size, false);
         grid.allow_diagonal_move = false;
-        let walls: HashSet<_> = input
+        for wall in input
             .lines()
             .take(byte_count)
             .flat_map(parse::parse_uvec2_res)
-            .collect();
-        let mut grid_str = String::new();
-        for y in 0..size {
-            for x in 0..size {
-                let pos = UVec2::new(x as _, y as _);
-                grid_str.push(if walls.contains(&pos) { '#' } else { '.' });
-            }
-            grid_str.push('\n');
-        }
-
-        // print!("{grid_str}");
-
-        // todo: set obstacles
-        for wall in walls {
+        {
             grid.set(wall.x as _, wall.y as _, true);
         }
         grid.generate_components();
@@ -47,18 +34,50 @@ pub mod solution {
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let tile = solve_b(input, 71, 1024);
+        Ok(format!("{},{}", tile.x, tile.y))
+    }
+
+    pub(crate) fn solve_b(input: &str, size: u8, safe_byte_count: usize) -> UVec2 {
+        let size = usize::from(size);
+        let walls: Vec<_> = input.lines().flat_map(parse::parse_uvec2_res).collect();
+        let mut floor = safe_byte_count + 1;
+        let mut ceil = walls.len() - 1;
+        loop {
+            let mut grid = PathingGrid::new(size, size, false);
+            grid.allow_diagonal_move = false;
+            let mid = (ceil - floor) / 2 + floor;
+            for wall in walls.iter().take(mid) {
+                grid.set(wall.x as _, wall.y as _, true);
+            }
+            grid.generate_components();
+            let reachable = grid
+                .get_path_single_goal(
+                    Point::new(0, 0),
+                    Point::new((size - 1) as _, (size - 1) as _),
+                    false,
+                )
+                .is_some();
+            if reachable {
+                floor = mid;
+            } else {
+                ceil = mid;
+            }
+            if ceil - floor <= 1 {
+                return walls[if reachable { mid } else { mid - 1 }];
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use glam::UVec2;
     use tracing_test::traced_test;
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "22";
-    const EXPECTED_B: &str = "todo_expected_b";
 
     #[test]
     #[traced_test]
@@ -70,7 +89,7 @@ mod tests {
     #[test]
     #[traced_test]
     fn day_18_b() {
-        let res = solution::part_b(TEST_INPUT);
-        assert_eq!(EXPECTED_B, res.unwrap());
+        let res = solution::solve_b(TEST_INPUT, 7, 12);
+        assert_eq!(UVec2::new(6, 1), res);
     }
 }
