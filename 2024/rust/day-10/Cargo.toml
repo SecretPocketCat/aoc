@@ -8,6 +8,7 @@ anyhow.workspace = true
 aoc-client.workspace = true
 clap.workspace = true
 glam.workspace = true
+grid.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tracing-test.workspace = true

@@ -7,7 +7,7 @@ pub mod solution {
     use glam::{IVec2, UVec2};
     use nom::{
         bytes::complete::tag,
-        character::complete::{self, space1},
+        character::complete::space1,
         sequence::{preceded, separated_pair},
         IResult, Parser,
     };
@@ -47,9 +47,9 @@ pub mod solution {
     impl Robot {
         pub fn parse(input: &str) -> IResult<&str, Self> {
             separated_pair(
-                preceded(tag("p="), parse_ivec2),
+                preceded(tag("p="), parse::parse_ivec2),
                 space1,
-                preceded(tag("v="), parse_ivec2),
+                preceded(tag("v="), parse::parse_ivec2),
             )
             .map(|(position, velocity)| Self {
                 position: position.as_uvec2(),
@@ -121,11 +121,6 @@ pub mod solution {
         }
 
         unreachable!();
-    }
-
-    fn parse_ivec2(input: &str) -> IResult<&str, IVec2> {
-        let (input, (x, y)) = separated_pair(complete::i32, tag(","), complete::i32)(input)?;
-        Ok((input, IVec2::new(x, y)))
     }
 }
 
