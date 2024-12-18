@@ -45,8 +45,8 @@ pub mod solution {
         velocity: IVec2,
     }
     impl Robot {
-        pub fn parse(input: &str) -> IResult<&str, Self> {
-            separated_pair(
+        pub fn parse(input: &str) -> anyhow::Result<Self> {
+            let (_, robot) = separated_pair(
                 preceded(tag("p="), parse::parse_ivec2),
                 space1,
                 preceded(tag("v="), parse::parse_ivec2),
@@ -56,6 +56,8 @@ pub mod solution {
                 velocity,
             })
             .parse(input)
+            .map_err(|e| e.to_owned())?;
+            Ok(robot)
         }
 
         pub fn step(&self, step_count: u32, map: &Map) -> UVec2 {
@@ -76,7 +78,7 @@ pub mod solution {
         let quadrants: Vec<_> = lines
             .into_iter()
             .filter_map(|l| {
-                let (_, robot) = Robot::parse(l).expect("Valid robot line");
+                let robot = Robot::parse(l).expect("Valid robot line");
                 robot.quadrant(100, &map).map(usize::from)
             })
             .collect();
@@ -103,7 +105,7 @@ pub mod solution {
         let mut robots: Vec<_> = lines
             .into_iter()
             .map(|l| {
-                let (_, robot) = Robot::parse(l).expect("Valid robot line");
+                let robot = Robot::parse(l).expect("Valid robot line");
                 robot
             })
             .collect();
