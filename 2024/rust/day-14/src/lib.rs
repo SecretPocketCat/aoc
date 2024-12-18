@@ -9,7 +9,7 @@ pub mod solution {
         bytes::complete::tag,
         character::complete::space1,
         sequence::{preceded, separated_pair},
-        IResult, Parser,
+        Parser,
     };
 
     type QuadrantRange = (Range<u32>, Range<u32>);
@@ -46,6 +46,7 @@ pub mod solution {
     }
     impl Robot {
         pub fn parse(input: &str) -> anyhow::Result<Self> {
+            #[allow(clippy::redundant_closure_for_method_calls)]
             let (_, robot) = separated_pair(
                 preceded(tag("p="), parse::parse_ivec2),
                 space1,
@@ -104,10 +105,7 @@ pub mod solution {
         let lines: Vec<_> = input.lines().collect();
         let mut robots: Vec<_> = lines
             .into_iter()
-            .map(|l| {
-                let robot = Robot::parse(l).expect("Valid robot line");
-                robot
-            })
+            .map(|l| Robot::parse(l).expect("Valid robot line"))
             .collect();
 
         let mut robot_positions = HashSet::with_capacity(robots.len());
