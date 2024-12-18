@@ -1,0 +1,34 @@
+[package]
+name = "day-18"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+aoc-client.workspace = true
+clap.workspace = true
+glam.workspace = true
+nom.workspace = true
+parse.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+grid.workspace = true
+grid_pathfinding = "0.2.1"
+grid_util = "0.1.1"
+
+[dev-dependencies]
+criterion.workspace = true
+test-case.workspace = true
+tracing-test.workspace = true
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "part_a"
+harness = false
+
+[[bench]]
+name = "part_b"
+harness = false
