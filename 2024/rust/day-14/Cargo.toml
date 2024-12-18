@@ -8,10 +8,11 @@ anyhow.workspace = true
 aoc-client.workspace = true
 clap.workspace = true
 glam.workspace = true
+nom.workspace = true
+parse.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
-nom.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

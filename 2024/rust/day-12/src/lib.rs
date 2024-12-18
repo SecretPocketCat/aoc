@@ -2,10 +2,9 @@ pub mod solution {
     use std::collections::{HashMap, HashSet};
 
     use glam::{IVec2, UVec2};
+    use grid::DIRS_4;
     use itertools::Itertools;
     use tracing::warn;
-
-    const DIRS: [IVec2; 4] = [IVec2::NEG_Y, IVec2::X, IVec2::Y, IVec2::NEG_X];
 
     struct NeighbourCount(usize);
 
@@ -46,7 +45,7 @@ pub mod solution {
                 if visited.contains_key(&pos) {
                     continue;
                 }
-                let mut neighbours: Vec<_> = DIRS
+                let mut neighbours: Vec<_> = DIRS_4
                     .iter()
                     .filter_map(|dir| match self.move_by(pos, *dir) {
                         Some((target, c)) if c == val => Some(target),
@@ -85,14 +84,15 @@ pub mod solution {
         let mut price = 0;
         while let Some(pos) = map.0.keys().next() {
             let visited = map.drain_area(*pos);
-            let visited: HashSet<_> = visited.keys().map(|t| t.as_ivec2()).collect();
+            let visited: HashSet<_> = visited.keys().map(UVec2::as_ivec2).collect();
             let area = visited.len();
             let edges: usize = visited
                 .iter()
                 // sort the tiles from top-left to btm-right
                 .sorted_unstable_by(|a, b| a.y.cmp(&b.y).then(a.x.cmp(&b.x)))
                 .map(|tile| {
-                    DIRS.iter()
+                    DIRS_4
+                        .iter()
                         .filter(|dir| {
                             let target = tile + *dir;
                             match visited.get(&target) {

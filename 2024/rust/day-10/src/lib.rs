@@ -2,9 +2,8 @@ pub mod solution {
     use std::collections::{HashMap, HashSet};
 
     use glam::{IVec2, UVec2};
+    use grid::DIRS_4;
     use tracing::warn;
-
-    const DIRS: [IVec2; 4] = [IVec2::NEG_Y, IVec2::X, IVec2::Y, IVec2::NEG_X];
 
     #[derive(Debug)]
     struct Map(HashMap<UVec2, u32>);
@@ -24,7 +23,7 @@ pub mod solution {
             curr_height: u32,
             mut reached: HashSet<UVec2>,
         ) -> HashSet<UVec2> {
-            for d in &DIRS {
+            for d in &DIRS_4 {
                 match self.move_by(pos, *d) {
                     Some((target, 9)) if curr_height == 8 => _ = reached.insert(target),
                     Some((target, height)) if height == curr_height + 1 => {
@@ -37,7 +36,8 @@ pub mod solution {
         }
 
         fn sum_paths(&self, pos: UVec2, curr_height: u32) -> usize {
-            DIRS.iter()
+            DIRS_4
+                .iter()
                 .filter_map(|d| match self.move_by(pos, *d) {
                     Some((_, 9)) if curr_height == 8 => Some(1),
                     Some((target, height)) if height == curr_height + 1 => {

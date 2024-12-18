@@ -9,6 +9,7 @@ aoc-client.workspace = true
 clap.workspace = true
 itertools.workspace = true
 glam.workspace = true
+grid.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
