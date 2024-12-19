@@ -131,12 +131,29 @@ impl<T> Grid<T> {
         self.walkable_tiles.get(&target).map(|c| (target, c))
     }
 
-    /// [Jump point search](https://harablog.wordpress.com/2011/09/07/jump-point-search/) is a symmetry pruning optimization for a* when pathfinding
-    /// on uniform-cost grids  
     #[must_use]
-    pub fn jump_point_search(&self, start: UVec2, end: UVec2) -> Option<Vec<UVec2>> {
+    pub fn neighbours(&self, tile: UVec2) -> Vec<UVec2> {
+        DIRS_4
+            .iter()
+            .filter_map(|d| self.move_by(tile, *d).map(|(c, _)| c))
+            .collect()
+    }
+
+    /// a* impl is based on [this redblobgames article](https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar)
+    // todo: might wanna try [Jump point search](https://harablog.wordpress.com/2011/09/07/jump-point-search/) - a symmetry pruning optimization for a* when pathfinding on uniform-cost grids
+    #[must_use]
+    pub fn find_path_astar(
+        &self,
+        start: impl Into<UVec2>,
+        end: impl Into<UVec2>,
+    ) -> Option<Vec<UVec2>> {
+        let start = start.into();
+        let end = end.into();
         if !self.walkable_tiles.contains_key(&start) || !self.walkable_tiles.contains_key(&end) {
             return None;
+        }
+        if start == end {
+            return Some(vec![start]);
         }
         let mut frontier = BinaryHeap::new();
         frontier.push(WeightedPoint::new(start, 0));
@@ -158,22 +175,18 @@ impl<T> Grid<T> {
                 return Some(res);
             }
 
-            // todo:
-            // for neighbour in grid.jfs_neighbours(current, dir) {}
-            for next in DIRS_4
-                .iter()
-                .filter_map(|d| self.move_by(current.coords, *d).map(|(c, _)| c))
-            {
-                let new_cost = cost.get(&current.coords).copied().unwrap_or_default() + 1;
+            let current_cost = cost.get(&current.coords).copied().unwrap_or_default();
+            for neighbour_coords in self.neighbours(current.coords) {
+                let neighbour_cost = current_cost + 1;
                 if cost
-                    .get(&next)
-                    // cost doesn't yet or is lower than the stored one
-                    .map_or(true, |current_cost| new_cost < *current_cost)
+                    .get(&neighbour_coords)
+                    // cost doesn't yet exist or is lower than the stored one
+                    .map_or(true, |current_cost| neighbour_cost < *current_cost)
                 {
-                    cost.insert(next, new_cost);
-                    let prio = new_cost + manhattan_distance(next, end);
-                    frontier.push(WeightedPoint::new(next, prio));
-                    came_from.insert(next, Some(current.coords));
+                    cost.insert(neighbour_coords, neighbour_cost);
+                    let prio = neighbour_cost + manhattan_distance(neighbour_coords, end);
+                    frontier.push(WeightedPoint::new(neighbour_coords, prio));
+                    came_from.insert(neighbour_coords, Some(current.coords));
                 }
             }
         }
@@ -186,8 +199,8 @@ impl<T: Default> Grid<T> {
         let size = size.into();
         let walkable_tiles = grid_iter(size).map(|c| (c, T::default())).collect();
         Self {
-            walkable_tiles,
             size,
+            walkable_tiles,
         }
     }
 
@@ -199,8 +212,8 @@ impl<T: Default> Grid<T> {
             .map(|c| (c, T::default()))
             .collect();
         Self {
-            walkable_tiles,
             size,
+            walkable_tiles,
         }
     }
 }
@@ -245,8 +258,8 @@ mod tests {
         (0,0).into(),
     ]))]
     #[traced_test]
-    fn jps(start: UVec2, end: UVec2) -> Option<Vec<UVec2>> {
+    fn astar(start: UVec2, end: UVec2) -> Option<Vec<UVec2>> {
         let grid = Grid::<()>::from_obstacles([UVec2::ONE], (3, 3));
-        grid.jump_point_search(start, end)
+        grid.find_path_astar(start, end)
     }
 }
