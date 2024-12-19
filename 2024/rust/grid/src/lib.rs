@@ -184,7 +184,7 @@ impl<T> Grid<T> {
                     .map_or(true, |current_cost| neighbour_cost < *current_cost)
                 {
                     cost.insert(neighbour_coords, neighbour_cost);
-                    let prio = neighbour_cost + manhattan_distance(neighbour_coords, end);
+                    let prio = neighbour_cost + neighbour_coords.manhattan_distance(end);
                     frontier.push(WeightedPoint::new(neighbour_coords, prio));
                     came_from.insert(neighbour_coords, Some(current.coords));
                 }
@@ -218,9 +218,14 @@ impl<T: Default> Grid<T> {
     }
 }
 
-#[must_use]
-pub fn manhattan_distance(a: UVec2, b: UVec2) -> u32 {
-    (a.as_ivec2() - b.as_ivec2()).abs().element_sum() as _
+pub trait UVec2Ext {
+    fn manhattan_distance(&self, other: UVec2) -> u32;
+}
+impl UVec2Ext for UVec2 {
+    #[must_use]
+    fn manhattan_distance(&self, other: UVec2) -> u32 {
+        (self.as_ivec2() - other.as_ivec2()).abs().element_sum() as _
+    }
 }
 
 #[cfg(test)]
@@ -235,7 +240,7 @@ mod tests {
     #[test_case(UVec2::new(1, 2), UVec2::new(2, 1) => 2)]
     #[traced_test]
     fn manhattan(a: UVec2, b: UVec2) -> u32 {
-        manhattan_distance(a, b)
+        a.manhattan_distance(b)
     }
 
     #[test_case(UVec2::ZERO, UVec2::ZERO => Some(vec![UVec2::ZERO]))]
