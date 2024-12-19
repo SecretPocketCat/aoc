@@ -1,9 +1,8 @@
 pub mod solution {
-    use std::{cmp::Ordering, collections::HashSet};
+    use std::collections::HashSet;
 
     use glam::UVec2;
-    use grid_pathfinding::PathingGrid;
-    use grid_util::{Grid, Point};
+    use grid::Grid;
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
@@ -11,23 +10,15 @@ pub mod solution {
     }
 
     pub(crate) fn solve_a(input: &str, size: u8, byte_count: usize) -> usize {
-        let size = usize::from(size);
-        let mut grid = PathingGrid::new(size, size, false);
-        grid.allow_diagonal_move = false;
-        for wall in input
+        let size = u32::from(size);
+        let obstacles: HashSet<_> = input
             .lines()
             .take(byte_count)
             .flat_map(parse::parse_uvec2_res)
-        {
-            grid.set(wall.x as _, wall.y as _, true);
-        }
-        grid.generate_components();
+            .collect();
+        let grid = Grid::<()>::from_obstacles(obstacles, (size, size));
         let path = grid
-            .get_path_single_goal(
-                Point::new(0, 0),
-                Point::new((size - 1) as _, (size - 1) as _),
-                false,
-            )
+            .find_path_astar((0, 0), ((size - 1), (size - 1)))
             .expect("Path exists");
         path.len() - 1
     }
@@ -39,24 +30,16 @@ pub mod solution {
     }
 
     pub(crate) fn solve_b(input: &str, size: u8, safe_byte_count: usize) -> UVec2 {
-        let size = usize::from(size);
+        let size = u32::from(size);
         let walls: Vec<_> = input.lines().flat_map(parse::parse_uvec2_res).collect();
         let mut floor = safe_byte_count + 1;
         let mut ceil = walls.len() - 1;
         loop {
-            let mut grid = PathingGrid::new(size, size, false);
-            grid.allow_diagonal_move = false;
             let mid = (ceil - floor) / 2 + floor;
-            for wall in walls.iter().take(mid) {
-                grid.set(wall.x as _, wall.y as _, true);
-            }
-            grid.generate_components();
+            let obstacles: HashSet<_> = walls.iter().take(mid).copied().collect();
+            let grid = Grid::<()>::from_obstacles(obstacles, (size, size));
             let reachable = grid
-                .get_path_single_goal(
-                    Point::new(0, 0),
-                    Point::new((size - 1) as _, (size - 1) as _),
-                    false,
-                )
+                .find_path_astar((0, 0), ((size - 1), (size - 1)))
                 .is_some();
             if reachable {
                 floor = mid;
