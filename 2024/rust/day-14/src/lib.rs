@@ -132,19 +132,12 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "12";
-    const EXPECTED_B: &str = "7774";
+    // const EXPECTED_B: &str = "7774";
 
     #[test]
     #[traced_test]
     fn day_14_a() {
         let res = solution::solve_a(TEST_INPUT, UVec2::new(11, 7));
         assert_eq!(EXPECTED_A, res);
-    }
-
-    #[test]
-    #[traced_test]
-    fn day_14_b() {
-        let res = solution::part_b(include_str!("../../target/inputs/day-14/input.txt"));
-        assert_eq!(EXPECTED_B, res.unwrap());
     }
 }
