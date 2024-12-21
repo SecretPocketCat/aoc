@@ -94,6 +94,17 @@ mod iter {
     }
 }
 
+pub struct Neigbour {
+    pub tile: UVec2,
+    pub direction: IVec2,
+}
+impl Neigbour {
+    #[must_use]
+    pub fn new(tile: UVec2, direction: IVec2) -> Self {
+        Self { tile, direction }
+    }
+}
+
 pub struct Grid<T = ()> {
     size: UVec2,
     walkable_tiles: HashMap<UVec2, T>,
@@ -122,9 +133,10 @@ impl<T> Grid<T> {
         }
     }
 
-    fn move_by(&self, pos: UVec2, dir: IVec2) -> Option<(UVec2, &T)> {
+    #[must_use]
+    pub fn move_target(&self, pos: UVec2, dir: IVec2) -> Option<(UVec2, &T)> {
         let target = pos.as_ivec2() + dir;
-        if target.min_element() < 0 {
+        if !self.within_bounds(target) {
             return None;
         }
         let target = target.as_uvec2();
@@ -132,10 +144,41 @@ impl<T> Grid<T> {
     }
 
     #[must_use]
+    pub fn move_tile(pos: UVec2, dir: IVec2) -> IVec2 {
+        pos.as_ivec2() + dir
+    }
+
+    #[must_use]
+    pub fn move_within_bounds(&self, pos: UVec2, dir: IVec2) -> bool {
+        let target = Self::move_tile(pos, dir);
+        self.within_bounds(target)
+    }
+
+    #[must_use]
+    pub fn within_bounds(&self, tile: IVec2) -> bool {
+        tile.min_element() >= 0 && tile.x < self.size.x as _ && tile.y < self.size.y as _
+    }
+
+    #[must_use]
     pub fn neighbours(&self, tile: UVec2) -> Vec<UVec2> {
         DIRS_4
             .iter()
-            .filter_map(|d| self.move_by(tile, *d).map(|(c, _)| c))
+            .filter_map(|d| self.move_target(tile, *d).map(|(c, _)| c))
+            .collect()
+    }
+
+    #[must_use]
+    pub fn obstacle_neighbours(&self, tile: UVec2) -> Vec<Neigbour> {
+        DIRS_4
+            .iter()
+            .filter_map(|d| {
+                let target = Self::move_tile(tile, *d);
+                if self.move_within_bounds(tile, *d) {
+                    Some(Neigbour::new(target.as_uvec2(), *d))
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
