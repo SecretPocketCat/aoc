@@ -1,6 +1,6 @@
 pub mod solution {
     use core::panic;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
 
     use glam::{IVec2, UVec2};
     use grid::{Grid, Neigbour, UVec2Ext, DIRS_4};
@@ -12,34 +12,7 @@ pub mod solution {
     }
 
     pub(crate) fn solve_a(input: &str, treshold: usize) -> usize {
-        let lines: Vec<_> = input.lines().collect();
-        let size = UVec2::new(lines[0].chars().count() as _, lines.len() as _);
-        let (Some(start), Some(end), walls) = lines.into_iter().enumerate().fold(
-            (None, None, HashSet::with_capacity((size.x * size.y) as _)),
-            |(mut start, mut end, mut walls), (y, l)| {
-                for (x, c) in l.chars().enumerate() {
-                    let tile = UVec2::new(x as _, y as _);
-                    match c {
-                        '#' => {
-                            walls.insert(tile);
-                        }
-                        'S' => {
-                            start = Some(tile);
-                        }
-                        'E' => {
-                            end = Some(tile);
-                        }
-                        _ => {}
-                    }
-                }
-                (start, end, walls)
-            },
-        ) else {
-            panic!("Invalid map - no start or end found");
-        };
-        let grid = Grid::<()>::from_obstacles(walls, size);
-        // perf: instead of pathfinding, could just walk available neighbours because there's only 1 valid path
-        let path = grid.find_path_astar(start, end).expect("Found path");
+        let (path, grid) = find_path(input);
         let path_index_map: HashMap<_, _> = path.iter().enumerate().map(|(i, t)| (*t, i)).collect();
         path.into_iter()
             .map(|tile| {
@@ -76,7 +49,7 @@ pub mod solution {
     }
 
     pub(crate) fn solve_b(input: &str, cheat_max_len: u32, cheat_shortcut_treshold: u32) -> usize {
-        let path = find_path(input);
+        let (path, _) = find_path(input);
         let orig_path_len = path.len();
         path.iter()
             .enumerate()
@@ -107,7 +80,7 @@ pub mod solution {
             .sum()
     }
 
-    fn find_path(input: &str) -> Vec<UVec2> {
+    fn find_path(input: &str) -> (Vec<UVec2>, Grid) {
         let lines: Vec<_> = input.lines().collect();
         let size = UVec2::new(lines[0].chars().count() as _, lines.len() as _);
         let (Some(start), Some(end), walkable_tiles) = lines.into_iter().enumerate().fold(
@@ -154,7 +127,7 @@ pub mod solution {
             tile = neigbour.tile;
             prev_dir = neigbour.direction;
         }
-        path
+        (path, grid)
     }
 }
 
