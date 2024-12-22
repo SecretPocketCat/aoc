@@ -94,6 +94,7 @@ mod iter {
     }
 }
 
+#[derive(Debug)]
 pub struct Neigbour {
     pub tile: UVec2,
     pub direction: IVec2,
@@ -105,6 +106,7 @@ impl Neigbour {
     }
 }
 
+#[derive(Debug)]
 pub struct Grid<T = ()> {
     size: UVec2,
     walkable_tiles: HashMap<UVec2, T>,
