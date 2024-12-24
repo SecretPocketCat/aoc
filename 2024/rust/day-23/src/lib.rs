@@ -1,16 +1,26 @@
 pub mod solution {
+    use anyhow::Context;
+    use itertools::Itertools;
     use std::collections::{HashMap, HashSet};
 
+    #[derive(Debug, Hash, PartialEq, Eq)]
+    struct Edge<'a>(&'a str, &'a str);
+
     #[derive(Default, Debug)]
-    struct Edges<'a>(HashMap<&'a str, HashSet<&'a str>>);
-    impl<'a> Edges<'a> {
+    struct Graph<'a> {
+        edges: HashSet<Edge<'a>>,
+        neighbours: HashMap<&'a str, HashSet<&'a str>>,
+        search_nodes: HashSet<&'a str>,
+    }
+    impl<'a> Graph<'a> {
         fn push_edge(&mut self, a: &'a str, b: &'a str) {
-            self.0
+            self.neighbours
                 .entry(a)
                 .and_modify(|edges| {
                     edges.insert(b);
                 })
                 .or_insert_with(|| [b].into());
+            self.edges.insert(Edge(a, b));
         }
 
         fn add_undirected_edge(&mut self, a: &'a str, b: &'a str) {
@@ -19,24 +29,17 @@ pub mod solution {
         }
 
         fn neighbours(&self, node: &str) -> &HashSet<&'a str> {
-            &self.0[node]
+            &self.neighbours[node]
         }
     }
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
-        let (all_edges, search_nodes) = input.lines().fold(
-            (Edges::default(), HashSet::<&str>::new()),
-            |(mut edges, mut search_nodes), l| {
-                let (a, b) = l.split_once('-').expect("Valid edge");
-                edges.add_undirected_edge(a, b);
-                search_nodes.extend([a, b].iter().filter(|n| n.starts_with('t')));
-                (edges, search_nodes)
-            },
-        );
+        let all_edges = parse_edges(input);
         let all_edges = &all_edges;
-        let lan_count: HashSet<_> = search_nodes
-            .into_iter()
+        let lan_count: HashSet<_> = all_edges
+            .search_nodes
+            .iter()
             .flat_map(|n| {
                 let node_edges = all_edges.neighbours(n);
                 node_edges.iter().flat_map(move |n1| {
@@ -57,7 +60,46 @@ pub mod solution {
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let all_edges = parse_edges(input);
+        let mut max = 0;
+        let mut res = None;
+        'search_nodes: for n in all_edges
+            .neighbours
+            .keys()
+            .sorted_unstable_by_key(|n| all_edges.neighbours(n).len())
+        {
+            let neighbours = all_edges.neighbours(n);
+            if neighbours.len() <= max {
+                break;
+            }
+            for i in ((max + 1)..=neighbours.len()).rev() {
+                if let Some(mut complete_subgraph) =
+                    neighbours.iter().combinations(i).find(|subset| {
+                        subset
+                            .iter()
+                            .tuple_combinations::<(_, _)>()
+                            .all(|(a, b)| all_edges.edges.contains(&Edge(a, b)))
+                    })
+                {
+                    max = complete_subgraph.len();
+                    complete_subgraph.push(n);
+                    res = Some(complete_subgraph.iter().sorted_unstable().join(","));
+                    continue 'search_nodes;
+                }
+            }
+        }
+        res.context("Found valid subgraph")
+    }
+
+    fn parse_edges(input: &str) -> Graph {
+        input.lines().fold(Graph::default(), |mut edges, l| {
+            let (a, b) = l.split_once('-').expect("Valid edge");
+            edges.add_undirected_edge(a, b);
+            edges
+                .search_nodes
+                .extend([a, b].iter().filter(|n| n.starts_with('t')));
+            edges
+        })
     }
 }
 
@@ -68,7 +110,7 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "7";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_B: &str = "co,de,ka,ta";
 
     #[test]
     #[traced_test]
