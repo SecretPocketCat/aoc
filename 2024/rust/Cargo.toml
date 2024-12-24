@@ -33,4 +33,5 @@ pedantic = { level = "warn", priority = -1 }
 cast_possible_wrap = "allow"
 cast_possible_truncation = "allow"
 cast_sign_loss = "allow"
+single_match_else = "allow"
 module_name_repetitions = "allow"
