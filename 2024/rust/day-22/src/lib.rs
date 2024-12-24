@@ -74,12 +74,11 @@ pub mod solution {
     pub(crate) fn secret_number(num: usize) -> usize {
         let num_1 = mix_and_prune(num << 6, num);
         let num_2 = mix_and_prune(num_1 >> 5, num_1);
-        let num_3 = mix_and_prune(num_2 << 11, num_2);
-        num_3
+        mix_and_prune(num_2 << 11, num_2)
     }
 
     fn mix_and_prune(num: usize, secret: usize) -> usize {
-        (num ^ secret) % 16777216
+        (num ^ secret) % 16_777_216
     }
 }
 
@@ -89,7 +88,7 @@ mod tests {
     use test_case::test_case;
     use tracing_test::traced_test;
 
-    #[test_case(123 => 15887950)]
+    #[test_case(123 => 15_887_950)]
     #[traced_test]
     fn day_22_secret_number(num: usize) -> usize {
         solution::secret_number(num)
