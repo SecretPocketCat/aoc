@@ -1,8 +1,9 @@
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use glam::{IVec2, UVec2};
-use iter::grid_iter;
 use tracing::warn;
+
+pub use iter::grid_iter;
 
 pub const DIRS_4: [IVec2; 4] = [IVec2::NEG_Y, IVec2::X, IVec2::Y, IVec2::NEG_X];
 
@@ -133,6 +134,16 @@ impl<T> Grid<T> {
                 .collect(),
             size: size.into(),
         }
+    }
+
+    #[must_use]
+    pub fn size(&self) -> UVec2 {
+        self.size
+    }
+
+    #[must_use]
+    pub fn walkable_tiles(&self) -> &HashMap<UVec2, T> {
+        &self.walkable_tiles
     }
 
     #[must_use]
