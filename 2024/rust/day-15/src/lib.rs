@@ -41,7 +41,7 @@ pub mod solution {
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let mut lines = input.lines();
         let mut crates = HashSet::new();
-        let built_grid = GridBuilder::<(), _>::build_obstacle_grid_from_lines_with_processing()
+        let built_grid = GridBuilder::build_obstacle_grid_from_lines_with_processing()
             .lines(lines.by_ref())
             .obstacle('#')
             .start_character('@')
