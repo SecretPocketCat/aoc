@@ -2,7 +2,7 @@ pub mod solution {
     use std::collections::{HashMap, HashSet};
 
     use glam::{IVec2, UVec2};
-    use grid::DIRS_4;
+    use grid::prelude::*;
     use itertools::Itertools;
     use tracing::warn;
 

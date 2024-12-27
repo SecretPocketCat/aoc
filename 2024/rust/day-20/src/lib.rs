@@ -3,7 +3,7 @@ pub mod solution {
     use std::collections::HashMap;
 
     use glam::{IVec2, UVec2};
-    use grid::{Grid, Neigbour, UVec2Ext, DIRS_4};
+    use grid::prelude::*;
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {

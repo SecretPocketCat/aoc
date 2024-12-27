@@ -2,7 +2,7 @@ pub mod solution {
     use std::collections::{HashMap, HashSet};
 
     use glam::{IVec2, UVec2};
-    use grid::{grid_iter, Grid};
+    use grid::prelude::*;
 
     struct MapA {
         grid: Grid,
@@ -40,32 +40,30 @@ pub mod solution {
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let mut lines = input.lines();
-        let (Some(robot_tile), obstacles, crates, size) = lines
-            .by_ref()
-            .take_while(|l| !l.is_empty())
-            .enumerate()
-            .fold(
-                (None, HashSet::new(), HashSet::new(), UVec2::ZERO),
-                |(mut robot_tile, mut obstacles, mut crates, _), (y, l)| {
-                    let mut size = UVec2::ZERO;
-                    for (x, c) in l.chars().enumerate() {
-                        let tile = UVec2::new(x as _, y as _);
-                        size = tile;
-                        match c {
-                            '@' => robot_tile = Some(tile),
-                            'O' => _ = crates.insert(tile),
-                            '#' => _ = obstacles.insert(tile),
-                            _ => {}
-                        }
-                    }
-                    (robot_tile, obstacles, crates, size)
-                },
-            )
+        let mut crates = HashSet::new();
+        let built_grid = GridBuilder::<(), _>::build_obstacle_grid_from_lines_with_processing()
+            .lines(lines.by_ref())
+            .obstacle('#')
+            .start_character('@')
+            .process_ctx(&mut crates)
+            .process_tile(|crates, c, tile| match c {
+                'O' => {
+                    crates.insert(tile);
+                    true
+                }
+                _ => false,
+            })
+            .call()?;
+        let BuiltGrid::<()> {
+            grid,
+            start_tile: Some(robot_tile),
+            end_tile: None,
+        } = built_grid
         else {
-            panic!("Invalid map - robot not found")
+            panic!("Invalid grid");
         };
         let mut map = MapA {
-            grid: Grid::from_obstacles(obstacles, size),
+            grid,
             crates,
             robot_tile,
         };
