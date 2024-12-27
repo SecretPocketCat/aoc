@@ -2,7 +2,7 @@ pub mod solution {
     use std::collections::HashSet;
 
     use glam::UVec2;
-    use grid::Grid;
+    use grid::prelude::*;
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
