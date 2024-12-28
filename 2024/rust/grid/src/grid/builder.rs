@@ -48,8 +48,8 @@ impl<TValue: Default> GridBuilder<TValue> {
     }
 
     #[builder]
-    pub fn build_obstacle_grid_from_lines<'a>(
-        lines: &'_ mut Lines<'a>,
+    pub fn build_obstacle_grid_from_lines(
+        lines: &mut Lines<'_>,
         obstacle: char,
         start_character: Option<char>,
         end_character: Option<char>,
