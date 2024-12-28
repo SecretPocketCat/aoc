@@ -14,4 +14,8 @@ pub mod prelude {
     pub use crate::grid::builder::*;
     pub use crate::grid::*;
     pub use crate::iter::*;
+
+    pub mod pathfinding {
+        pub use pathfinding::directed::astar::{astar, astar_bag};
+    }
 }
