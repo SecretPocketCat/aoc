@@ -37,7 +37,7 @@ pub struct NodePath<TNode> {
     pub cost: u32,
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub struct Neigbour {
     pub tile: UVec2,
     pub direction: IVec2,
@@ -115,10 +115,13 @@ impl<T> Grid<T> {
     }
 
     #[must_use]
-    pub fn neighbours(&self, tile: UVec2) -> Vec<UVec2> {
+    pub fn neighbours(&self, tile: UVec2) -> Vec<Neigbour> {
         DIRS_4
             .iter()
-            .filter_map(|d| self.move_target(tile, *d).map(|(c, _)| c))
+            .filter_map(|d| {
+                self.move_target(tile, *d)
+                    .map(|(c, _)| Neigbour::new(c, *d))
+            })
             .collect()
     }
 
@@ -143,12 +146,14 @@ impl<T> Grid<T> {
         start: impl Into<UVec2>,
         end: impl Into<UVec2>,
     ) -> Option<Vec<UVec2>> {
+        let start = start.into();
         let end = end.into();
         Self::find_path_astar_with_successors(
             start,
-            end,
-            |node| self.neighbours(*node).into_iter().map(|n| (n, 1)),
+            &end,
+            |node| self.neighbours(*node).into_iter().map(|n| (n.tile, 1)),
             |node| node.manhattan_distance(end),
+            |n| *n == end,
         )
         .map(|node_path| node_path.path)
     }
@@ -156,21 +161,27 @@ impl<T> Grid<T> {
     /// a* impl is based on [this redblobgames article](https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar)
     // todo: might wanna try [Jump point search](https://harablog.wordpress.com/2011/09/07/jump-point-search/) - a symmetry pruning optimization for a* when pathfinding on uniform-cost grids
     #[must_use]
-    pub fn find_path_astar_with_successors<TNode, TFnSuccessors, TSuccessors, TFNHeurestic>(
-        start: impl Into<TNode>,
-        end: impl Into<TNode>,
+    pub fn find_path_astar_with_successors<
+        TNode,
+        TFnSuccessors,
+        TSuccessors,
+        TFNHeurestic,
+        TFnReachedEnd,
+    >(
+        start: TNode,
+        end: &TNode,
         mut successors: TFnSuccessors,
         mut heuristic: TFNHeurestic,
+        mut reached_end: TFnReachedEnd,
     ) -> Option<NodePath<TNode>>
     where
         TNode: Eq + fmt::Debug + hash::Hash + Clone,
         TFnSuccessors: FnMut(&TNode) -> TSuccessors,
         TSuccessors: IntoIterator<Item = (TNode, u32)>,
         TFNHeurestic: FnMut(&TNode) -> u32,
+        TFnReachedEnd: FnMut(&TNode) -> bool,
     {
-        let start = start.into();
-        let end = end.into();
-        if start == end {
+        if &start == end {
             return Some(NodePath {
                 path: vec![start],
                 cost: 0,
@@ -183,8 +194,9 @@ impl<T> Grid<T> {
         let mut cost = HashMap::new();
         cost.insert(start, 0);
         while let Some(current) = frontier.pop() {
-            tracing::warn!(?current);
-            if current.node == end {
+            tracing::trace!(?current);
+            let current_cost = cost.get(&current.node).copied().unwrap_or_default();
+            if reached_end(&current.node) {
                 let mut from = &current.node;
                 let mut res = vec![from.clone()];
                 while let Some(Some(prev)) = came_from.get(from) {
@@ -194,19 +206,22 @@ impl<T> Grid<T> {
                 res.reverse();
                 return Some(NodePath {
                     path: res,
-                    cost: current.priority,
+                    cost: current_cost,
                 });
             }
-            for (neighbour_node, neighbour_cost) in successors(&current.node) {
+            for (succesor_node, mut successor_cost) in successors(&current.node) {
+                successor_cost += current_cost;
                 if cost
-                    .get(&neighbour_node)
+                    .get(&succesor_node)
                     // cost doesn't yet exist or is lower than the stored one
-                    .map_or(true, |current_cost| neighbour_cost < *current_cost)
+                    .map_or(true, |stored_successor_cost| {
+                        successor_cost < *stored_successor_cost
+                    })
                 {
-                    let prio = neighbour_cost + heuristic(&neighbour_node);
-                    frontier.push(OrderedNode::new(neighbour_node.clone(), prio));
-                    came_from.insert(neighbour_node.clone(), Some(current.node.clone()));
-                    cost.insert(neighbour_node, neighbour_cost);
+                    let prio = successor_cost + heuristic(&succesor_node);
+                    frontier.push(OrderedNode::new(succesor_node.clone(), prio));
+                    came_from.insert(succesor_node.clone(), Some(current.node.clone()));
+                    cost.insert(succesor_node, successor_cost);
                 }
             }
         }
