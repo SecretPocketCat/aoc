@@ -7,7 +7,7 @@ pub use ext::*;
 pub use grid::*;
 
 pub mod prelude {
-    pub use glam::UVec2;
+    pub use glam::{IVec2, UVec2};
 
     pub use crate::dir::*;
     pub use crate::ext::*;
