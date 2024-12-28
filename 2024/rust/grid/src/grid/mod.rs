@@ -1,30 +1,40 @@
 use glam::{IVec2, UVec2};
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::{
+    cmp,
+    collections::{BinaryHeap, HashMap, HashSet},
+    fmt, hash,
+};
 
 use crate::{dir::DIRS_4, iter::grid_iter, UVec2Ext};
 
 pub mod builder;
 
 #[derive(PartialEq, Eq, Debug)]
-struct WeightedPoint {
-    coords: UVec2,
+struct OrderedNode<T: hash::Hash + fmt::Debug = UVec2> {
+    node: T,
     priority: u32,
 }
-impl WeightedPoint {
-    fn new(coords: UVec2, priority: u32) -> Self {
-        Self { coords, priority }
+impl<T: hash::Hash + fmt::Debug> OrderedNode<T> {
+    fn new(node: T, priority: u32) -> Self {
+        Self { node, priority }
     }
 }
-impl PartialOrd for WeightedPoint {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+impl<T: hash::Hash + Eq + fmt::Debug> PartialOrd for OrderedNode<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
-impl Ord for WeightedPoint {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+impl<T: hash::Hash + Eq + fmt::Debug> Ord for OrderedNode<T> {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
         // reversed order to use a min heap
         self.priority.cmp(&other.priority).reverse()
     }
+}
+
+#[derive(Debug)]
+pub struct NodePath<TNode> {
+    pub path: Vec<TNode>,
+    pub cost: u32,
 }
 
 #[derive(Debug)]
@@ -127,58 +137,79 @@ impl<T> Grid<T> {
             .collect()
     }
 
-    /// a* impl is based on [this redblobgames article](https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar)
-    // todo: might wanna try [Jump point search](https://harablog.wordpress.com/2011/09/07/jump-point-search/) - a symmetry pruning optimization for a* when pathfinding on uniform-cost grids
     #[must_use]
     pub fn find_path_astar(
         &self,
         start: impl Into<UVec2>,
         end: impl Into<UVec2>,
     ) -> Option<Vec<UVec2>> {
+        let end = end.into();
+        Self::find_path_astar_with_successors(
+            start,
+            end,
+            |node| self.neighbours(*node).into_iter().map(|n| (n, 1)),
+            |node| node.manhattan_distance(end),
+        )
+        .map(|node_path| node_path.path)
+    }
+
+    /// a* impl is based on [this redblobgames article](https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar)
+    // todo: might wanna try [Jump point search](https://harablog.wordpress.com/2011/09/07/jump-point-search/) - a symmetry pruning optimization for a* when pathfinding on uniform-cost grids
+    #[must_use]
+    pub fn find_path_astar_with_successors<TNode, TFnSuccessors, TSuccessors, TFNHeurestic>(
+        start: impl Into<TNode>,
+        end: impl Into<TNode>,
+        mut successors: TFnSuccessors,
+        mut heuristic: TFNHeurestic,
+    ) -> Option<NodePath<TNode>>
+    where
+        TNode: Eq + fmt::Debug + hash::Hash + Clone,
+        TFnSuccessors: FnMut(&TNode) -> TSuccessors,
+        TSuccessors: IntoIterator<Item = (TNode, u32)>,
+        TFNHeurestic: FnMut(&TNode) -> u32,
+    {
         let start = start.into();
         let end = end.into();
-        if !self.walkable_tiles.contains_key(&start) || !self.walkable_tiles.contains_key(&end) {
-            return None;
-        }
         if start == end {
-            return Some(vec![start]);
+            return Some(NodePath {
+                path: vec![start],
+                cost: 0,
+            });
         }
         let mut frontier = BinaryHeap::new();
-        frontier.push(WeightedPoint::new(start, 0));
-        let capacity = (self.size.element_product() / 4).max(8) as usize;
-        let mut came_from = HashMap::with_capacity(capacity);
-        came_from.insert(start, None);
-        let mut cost = HashMap::with_capacity(capacity);
+        frontier.push(OrderedNode::new(start.clone(), 0));
+        let mut came_from: HashMap<TNode, Option<TNode>> = HashMap::new();
+        came_from.insert(start.clone(), None);
+        let mut cost = HashMap::new();
         cost.insert(start, 0);
         while let Some(current) = frontier.pop() {
             tracing::warn!(?current);
-            if current.coords == end {
-                let mut from = current.coords;
-                let mut res = vec![from];
-                while let Some(Some(prev)) = came_from.get(&from) {
-                    res.push(*prev);
-                    from = *prev;
+            if current.node == end {
+                let mut from = &current.node;
+                let mut res = vec![from.clone()];
+                while let Some(Some(prev)) = came_from.get(from) {
+                    res.push((*prev).clone());
+                    from = prev;
                 }
                 res.reverse();
-                return Some(res);
+                return Some(NodePath {
+                    path: res,
+                    cost: current.priority,
+                });
             }
-
-            let current_cost = cost.get(&current.coords).copied().unwrap_or_default();
-            for neighbour_coords in self.neighbours(current.coords) {
-                let neighbour_cost = current_cost + 1;
+            for (neighbour_node, neighbour_cost) in successors(&current.node) {
                 if cost
-                    .get(&neighbour_coords)
+                    .get(&neighbour_node)
                     // cost doesn't yet exist or is lower than the stored one
                     .map_or(true, |current_cost| neighbour_cost < *current_cost)
                 {
-                    cost.insert(neighbour_coords, neighbour_cost);
-                    let prio = neighbour_cost + neighbour_coords.manhattan_distance(end);
-                    frontier.push(WeightedPoint::new(neighbour_coords, prio));
-                    came_from.insert(neighbour_coords, Some(current.coords));
+                    let prio = neighbour_cost + heuristic(&neighbour_node);
+                    frontier.push(OrderedNode::new(neighbour_node.clone(), prio));
+                    came_from.insert(neighbour_node.clone(), Some(current.node.clone()));
+                    cost.insert(neighbour_node, neighbour_cost);
                 }
             }
         }
-
         None
     }
 }
