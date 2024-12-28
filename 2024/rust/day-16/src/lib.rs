@@ -1,4 +1,6 @@
 pub mod solution {
+    use std::collections::HashSet;
+
     use anyhow::Context;
     use grid::prelude::*;
 
@@ -17,39 +19,61 @@ pub mod solution {
         else {
             panic!("Invalid grid");
         };
-        let path = Grid::<()>::find_path_astar_with_successors(
-            Neigbour::new(start, IVec2::X), // East
-            &Neigbour::new(end, IVec2::ZERO),
+        let (_, cost) = pathfinding::astar(
+            &Neigbour::new(start, IVec2::X), // East
             |n| {
-                grid.neighbours(n.tile)
-                    .into_iter()
-                    .flat_map(|neighbour| {
-                        DIRS_4
-                            .iter()
-                            .filter(|dir| grid.move_target(n.tile, **dir).is_some())
-                            .map(move |direction| {
-                                let cost = if direction.abs() == n.direction.abs() {
-                                    // moving in the same dir or backwards
-                                    1
-                                } else {
-                                    // rotating to the side
-                                    1001
-                                };
-                                (Neigbour::new(neighbour.tile, *direction), cost)
-                            })
-                    })
-                    .collect::<Vec<_>>()
+                let cw = (Neigbour::new(n.tile, -n.direction.perp()), 1000);
+                let ccw = (Neigbour::new(n.tile, n.direction.perp()), 1000);
+                match grid.move_target(n.tile, n.direction) {
+                    Some((target_tile, ())) => {
+                        vec![(Neigbour::new(target_tile, n.direction), 1), cw, ccw]
+                    }
+                    None => vec![cw, ccw],
+                }
             },
             |n| n.tile.manhattan_distance(end),
             |n| n.tile == end,
         )
         .context("Found valid path")?;
-        Ok(path.cost.to_string())
+        Ok(cost.to_string())
     }
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let BuiltGrid::<()> {
+            grid,
+            start_tile: Some(start),
+            end_tile: Some(end),
+        } = GridBuilder::build_obstacle_grid()
+            .input(input)
+            .obstacle('#')
+            .start_character('S')
+            .end_character('E')
+            .call()?
+        else {
+            panic!("Invalid grid");
+        };
+        let (paths, _cost) = pathfinding::astar_bag(
+            &Neigbour::new(start, IVec2::X), // East
+            |n| {
+                let cw = (Neigbour::new(n.tile, -n.direction.perp()), 1000);
+                let ccw = (Neigbour::new(n.tile, n.direction.perp()), 1000);
+                match grid.move_target(n.tile, n.direction) {
+                    Some((target_tile, ())) => {
+                        vec![(Neigbour::new(target_tile, n.direction), 1), cw, ccw]
+                    }
+                    None => vec![cw, ccw],
+                }
+            },
+            |n| n.tile.manhattan_distance(end),
+            |n| n.tile == end,
+        )
+        .context("Found valid path")?;
+        let all_tiles: HashSet<_> = paths
+            .into_iter()
+            .flat_map(|p| p.into_iter().map(|n| n.tile))
+            .collect();
+        Ok(all_tiles.len().to_string())
     }
 }
 
@@ -60,7 +84,7 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "7036";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_B: &str = "45";
 
     #[test]
     #[traced_test]
