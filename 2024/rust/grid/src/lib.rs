@@ -16,6 +16,9 @@ pub mod prelude {
     pub use crate::iter::*;
 
     pub mod pathfinding {
-        pub use pathfinding::directed::astar::{astar, astar_bag};
+        pub use pathfinding::directed::{
+            astar::{astar, astar_bag},
+            dijkstra::{dijkstra, dijkstra_all},
+        };
     }
 }
