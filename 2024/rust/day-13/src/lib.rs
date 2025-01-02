@@ -1,6 +1,5 @@
 pub mod solution {
     use glam::U64Vec2;
-    use grid::prelude::pathfinding::dijkstra;
     use nom::{
         bytes::complete::{tag, take_till1},
         character::complete::{self},
@@ -16,77 +15,40 @@ pub mod solution {
         prize: U64Vec2,
     }
     impl Machine {
-        fn token_count(&self, limit: u32) -> Option<u32> {
-            dijkstra(
-                &(U64Vec2::ZERO, 0, 0),
-                |(pos, presses_a, presses_b)| {
-                    if *presses_a < limit && *presses_b < limit {
-                        vec![
-                            ((pos + self.button_a, *presses_a + 1, *presses_b), 3),
-                            ((pos + self.button_b, *presses_a, *presses_b + 1), 1),
-                        ]
-                    } else {
-                        vec![]
-                    }
-                },
-                |(pos, ..)| *pos == self.prize,
-            )
-            .map(|(_, cost)| cost)
+        fn token_count(&self, limit: Option<u32>) -> Option<u64> {
+            // use Cramer's rule
+            let determinant = Self::determinant_mat2(self.button_a, self.button_b);
+            let determinant_x = Self::determinant_mat2(self.prize, self.button_b);
+            let determinant_y = Self::determinant_mat2(self.button_a, self.prize);
+            if (determinant_x % determinant)
+                .abs()
+                .max((determinant_y % determinant).abs())
+                > 0
+            {
+                return None;
+            }
+            let x = (determinant_x / determinant) as u64;
+            let y = (determinant_y / determinant) as u64;
+            if limit.is_none_or(|limit| x.max(y) < u64::from(limit)) {
+                Some(x * 3 + y)
+            } else {
+                None
+            }
+        }
 
-            // fn solve(
-            //     machine: &Machine,
-            //     position: U64Vec2,
-            //     tokens: u32,
-            //     // todo: the presses are per each btn not cumulative
-            //     btn_presses: u8,
-            //     min: &mut u32,
-            // ) -> Option<u32> {
-            //     // tracing::warn!(?position);
-            //     if btn_presses >= 150
-            //         || position.x > machine.prize.x
-            //         || position.y > machine.prize.y
-            //         || tokens >= *min
-            //     {
-            //         return None;
-            //     }
-            //     if position == machine.prize {
-            //         *min = tokens;
-            //         return Some(tokens);
-            //     }
-            //     match (
-            //         solve(
-            //             machine,
-            //             position + machine.button_b,
-            //             tokens + 1,
-            //             btn_presses + 1,
-            //             min,
-            //         ),
-            //         solve(
-            //             machine,
-            //             position + machine.button_a,
-            //             tokens + 3,
-            //             btn_presses + 1,
-            //             min,
-            //         ),
-            //     ) {
-            //         (None, None) => None,
-            //         (None, Some(tokens)) | (Some(tokens), None) => Some(tokens),
-            //         (Some(b), Some(a)) => Some(b.min(a)),
-            //     }
-            // }
-            // let mut min = 400;
-            // solve(self, U64Vec2::ZERO, 0, 0, &mut min)
+        fn determinant_mat2(row_a: U64Vec2, row_b: U64Vec2) -> i64 {
+            (row_a.x * row_b.y) as i64 - (row_b.x * row_a.y) as i64
         }
     }
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let lines: Vec<_> = input.lines().collect();
-        let token_count: u32 = lines
+        let token_count: u64 = lines
             .par_chunks(4)
             .filter_map(|machine_lines| {
                 let machine = parse_machine(machine_lines).expect("Parsed machine");
-                machine.token_count(100)
+                machine.token_count(Some(100))
             })
             .sum();
         Ok(token_count.to_string())
@@ -95,12 +57,12 @@ pub mod solution {
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
         let lines: Vec<_> = input.lines().collect();
-        let token_count: u32 = lines
+        let token_count: u64 = lines
             .par_chunks(4)
             .filter_map(|machine_lines| {
                 let mut machine = parse_machine(machine_lines).expect("Parsed machine");
-                machine.prize += U64Vec2::ONE * 10000000000000;
-                machine.token_count(10_000)
+                machine.prize += U64Vec2::ONE * 10_000_000_000_000;
+                machine.token_count(None)
             })
             .sum();
         Ok(token_count.to_string())
@@ -123,9 +85,12 @@ pub mod solution {
     }
 
     fn parse_machine(lines: &[&str]) -> anyhow::Result<Machine> {
-        let (_, button_a) = parse_btn(lines[0]).map_err(|e| e.to_owned())?;
-        let (_, button_b) = parse_btn(lines[1]).map_err(|e| e.to_owned())?;
-        let (_, prize) = parse_prize(lines[2]).map_err(|e| e.to_owned())?;
+        let (_, button_a) =
+            parse_btn(lines[0]).map_err(nom::Err::<nom::error::Error<&str>>::to_owned)?;
+        let (_, button_b) =
+            parse_btn(lines[1]).map_err(nom::Err::<nom::error::Error<&str>>::to_owned)?;
+        let (_, prize) =
+            parse_prize(lines[2]).map_err(nom::Err::<nom::error::Error<&str>>::to_owned)?;
         Ok(Machine {
             button_a,
             button_b,
@@ -145,19 +110,11 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "480";
-    const EXPECTED_B: &str = "todo_expected_b";
 
     #[test]
     #[traced_test]
     fn day_13_a() {
         let res = solution::part_a(TEST_INPUT);
         assert_eq!(EXPECTED_A, res.unwrap());
-    }
-
-    #[test]
-    #[traced_test]
-    fn day_13_b() {
-        let res = solution::part_b(TEST_INPUT);
-        assert_eq!(EXPECTED_B, res.unwrap());
     }
 }
