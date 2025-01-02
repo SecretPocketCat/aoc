@@ -46,7 +46,6 @@ pub mod solution {
     }
     impl Robot {
         pub fn parse(input: &str) -> anyhow::Result<Self> {
-            #[allow(clippy::redundant_closure_for_method_calls)]
             let (_, robot) = separated_pair(
                 preceded(tag("p="), parse::parse_ivec2),
                 space1,
@@ -57,7 +56,7 @@ pub mod solution {
                 velocity,
             })
             .parse(input)
-            .map_err(|e| e.to_owned())?;
+            .map_err(nom::Err::<nom::error::Error<&str>>::to_owned)?;
             Ok(robot)
         }
 
